@@ -115,7 +115,18 @@ textarea:focus{border-color:var(--k)}
 .txrow{display:flex;gap:8px;align-items:stretch;margin-top:6px}
 .mic{width:54px;border:1px solid var(--k);background:var(--w);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
 .mic svg{width:22px;height:22px;stroke:var(--k);fill:none;stroke-width:1.3}
-.mic.rec{background:var(--k)}.mic.rec svg{stroke:var(--on)}
+.mic.rec{background:#b3261e;border-color:#b3261e}.mic.rec svg{stroke:#fff}
+.mic{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
+.recbar{display:none;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;border:1px solid #b3261e;background:var(--w)}
+.recbar.on{display:flex}.recbar .dot{width:10px;height:10px;border-radius:50%;background:#b3261e;animation:rp 1s infinite;flex:none}
+@keyframes rp{50%{opacity:.25}}.recbar .rt{font-variant-numeric:tabular-nums;font-size:15px;min-width:86px}.recbar .rh{flex:1;font-size:12px;color:var(--g3)}
+.recbar button{border:1px solid var(--k);background:var(--w);color:var(--k);padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}.recbar button.sv{background:var(--k);color:var(--on)}
+.auds{display:flex;flex-direction:column;gap:6px;margin-top:6px}.au{display:flex;align-items:center;gap:10px;border:1px solid var(--g2,#ddd);padding:6px 8px}
+.au .aup{width:34px;height:34px;border-radius:50%;border:1px solid var(--k);background:var(--w);color:var(--k);cursor:pointer;font-size:13px;flex:none}.au .aup.on{background:var(--k);color:var(--on)}
+.au span{flex:1;font-size:13px}.au .aux{border:0;background:none;color:var(--k);font-size:20px;cursor:pointer;padding:0 6px}
+.mhint{font-size:11.5px;color:var(--g3);margin-top:6px;line-height:1.45}
+.pks{display:flex;margin:14px 0 8px}.pks button{flex:1;padding:10px;border:1px solid var(--k);background:var(--w);color:var(--k);font:inherit;font-size:14px;cursor:pointer}.pks button+button{border-left:0}.pks button.on{background:var(--k);color:var(--on)}
+.pks small{display:block;font-size:10.5px;opacity:.7;margin-top:2px}
 .photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .photos .p{width:82px;height:82px;background:var(--g6);position:relative;overflow:hidden}
 .photos .p img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
@@ -426,13 +437,13 @@ const LOADING=new Set();
 function phSrc(p){if(!p)return PIX;if(p.startsWith('data:'))return p;if(FOTO[p])return FOTO[p];ensureFoto(p);return PIX}
 async function fotoURL(p){if(!p)return '';if(p.startsWith('data:'))return p;if(FOTO[p])return FOTO[p];await ensureFoto(p);return FOTO[p]||''}
 async function ensureFoto(p){if(FOTO[p]||LOADING.has(p))return;LOADING.add(p);
-  try{let r=null;try{r=await iGet('fotos',p)}catch(e){}if(r&&r.d){FOTO[p]=r.d}else if(AUTHED){const d=await FBK.get('fotos',p);if(d&&d.d){FOTO[p]=d.d;iPut('fotos',{id:p,d:d.d}).catch(()=>{})}}}catch(e){}
+  try{let r=null;try{r=await iGet('fotos',p)}catch(e){}if(r&&r.d){FOTO[p]=r.d}else if(AUTHED){const d=await FBK.get('fotos',p);let v=d&&d.d;if(d&&!v&&d.n){const parts=[];for(let i=0;i<d.n;i++){const q=await FBK.get('fotos',p+'~'+i);parts.push(q&&q.d||'')}if(parts.every(Boolean))v=parts.join('')}if(v){FOTO[p]=v;iPut('fotos',{id:p,d:v}).catch(()=>{})}}}catch(e){}
   LOADING.delete(p);if(FOTO[p])document.querySelectorAll(`img[data-f="${p}"]`).forEach(i=>i.src=FOTO[p])}
 const vis=r=>{const o=new Set(r.ocultas||[]);return [...new Set(r.fotos||[])].filter(f=>!o.has(f))};
 function compress(file,max,q){return new Promise((res,rej)=>{const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{let w=img.width,h=img.height;const s=Math.min(1,max/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',q))};img.onerror=rej;img.src=url})}
 async function storePhoto(file){const d=await compress(file,1100,.68);const id='f'+uid();FOTO[id]=d;try{await iPut('fotos',{id,d,local:true})}catch(e){}return id}
 /* vista */
-const CAMPOS=['u','z','cat','ind','txt','x','y','estado','loc','anulado','tHecho','tValid','rech'];
+const CAMPOS=['u','z','cat','ind','txt','x','y','estado','loc','anulado','tHecho','tValid','rech','pl','aud'];
 function viewRec(id){const r=SERVER[id];return r?{...r,id,_local:PENDREC.has(id)}:null}
 function allRecs(){return Object.keys(SERVER).map(viewRec)}
 function diffCampos(a,b){return CAMPOS.filter(c=>JSON.stringify(a[c]??null)!==JSON.stringify(b[c]??null))}
@@ -443,7 +454,10 @@ async function saveRep(rec,campos,accion){
   data.mod=Date.now();data.modAut=CUR;
   const prev=SERVER[rec.id];const had=new Set((prev&&prev.fotos)||[]);
   const fotosAdd=(rec.fotos||[]).filter(f=>!had.has(f));const ocultasAdd=(rec.ocultas||[]).filter(Boolean);
-  for(const f of fotosAdd){if(UPL.has(f))continue;let d=FOTO[f];if(!d){try{const r=await iGet('fotos',f);d=r&&r.d}catch(e){}}if(d){UPL.add(f);await jAdd({col:'fotos',doc:f,data:{d,rid:rec.id,t:Date.now(),aut:CUR}})}}
+  const hadA=new Set((prev&&prev.aud)||[]);const audAdd=(rec.aud||[]).filter(a=>!hadA.has(a));
+  for(const f of [...fotosAdd,...audAdd]){if(UPL.has(f))continue;let d=FOTO[f];if(!d){try{const r=await iGet('fotos',f);d=r&&r.d}catch(e){}}if(d){UPL.add(f);
+    if(d.length>900000){const n=Math.ceil(d.length/900000);for(let i=0;i<n;i++)await jAdd({col:'fotos',doc:f+'~'+i,data:{d:d.slice(i*900000,(i+1)*900000),rid:rec.id,t:Date.now(),aut:CUR}});await jAdd({col:'fotos',doc:f,data:{d:'',n,rid:rec.id,t:Date.now(),aut:CUR}})}
+    else await jAdd({col:'fotos',doc:f,data:{d,rid:rec.id,t:Date.now(),aut:CUR}})}}
   await jAdd({col:'repasos',doc:rec.id,data,add:{fotos:fotosAdd,ocultas:ocultasAdd}});
   await jAdd({col:'historial',doc:'h'+uid(),data:{rid:rec.id,t:Date.now(),accion,campos:isNew?[]:campos,aut:CUR,u:rec.u,z:rec.z,txt:(rec.txt||'').slice(0,120)}});
   if(!SERVER[rec.id]){SERVER[rec.id]={...data,fotos:fotosAdd,ocultas:ocultasAdd};PENDREC.add(rec.id)}
@@ -493,6 +507,13 @@ function go(h){location.hash=h?'#'+h:'';if(!h)render()}
 function dotsFor(list){const ids=[...new Set(list.filter(pend).map(r=>r.ind))];return `<span class="dots">${ids.map(i=>`<i style="background:${indOf(i).c}"></i>`).join('')}</span>`}
 function pinNums(uid){const l=of(r=>r.u==uid&&r.x!=null).sort((a,b)=>a.ts-b.ts);const m={};l.forEach((r,i)=>m[r.id]=i+1);return m}
 const ESTN={pendiente:'Pendiente',hecho:'Hecho',validado:'Validado'};
+const PK=[['S1','Sótano −1','Plazas 1–47 · T01–T46'],['S2','Sótano −2','Plazas 48–97 · T47–T92']];
+const pkName=l=>(PK.find(x=>x[0]==l)||[,''])[1];
+let pkL=(()=>{try{return localStorage.getItem('rp-pk')||'S1'}catch(e){return 'S1'}})();
+function setPk(l){pkL=l;try{localStorage.setItem('rp-pk',l)}catch(e){}render()}
+const hasPlan=r=>r.u!='ZC'||r.z=='parking';
+function plImg(r){return r.u=='ZC'?(r.z=='parking'&&r.pl?'planos/'+r.pl+'.jpg':null):'planos/'+r.u+'.jpg'}
+function pinNumsPk(pl){const l=of(r=>r.u=='ZC'&&r.z=='parking'&&r.pl==pl&&r.x!=null).sort((a,b)=>a.ts-b.ts);const m={};l.forEach((r,i)=>m[r.id]=i+1);return m}
 function zoneName(r){if(r.u=='ZC')return (ZC.find(z=>z[0]==r.z)||[,r.z])[1];const z=zonesOf(U[r.u]).find(z=>z.k==r.z);return z?z.n:r.z}
 
 /* ---------- desplegables de plantas ---------- */
@@ -507,9 +528,9 @@ setTimeout(()=>loadJsPDF().catch(()=>{}),2500);
 const IMGC={};
 function imgEl(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('img'));i.src=src})}
 async function jpg(src,max,q){const key=src+'|'+max;if(IMGC[key])return IMGC[key];const im=await imgEl(src);const s=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*s);c.height=Math.round(im.naturalHeight*s);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);return IMGC[key]={d:c.toDataURL('image/jpeg',q||.72),w:c.width,h:c.height}}
-async function planPins(u,recs){
-  const im=await imgEl('planos/'+u.id+'.jpg');const s=Math.min(1,1500/im.naturalWidth);const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*s);c.height=Math.round(im.naturalHeight*s);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
-  const nums=pinNums(u.id);const R=Math.max(10,c.width*.014);
+async function planPins(u,recs,src,numsIn){
+  const im=await imgEl(src||'planos/'+u.id+'.jpg');const s=Math.min(1,1500/im.naturalWidth);const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*s);c.height=Math.round(im.naturalHeight*s);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+  const nums=numsIn||pinNums(u.id);const R=Math.max(10,c.width*.012);
   recs.filter(r=>r.x!=null).forEach(r=>{const px=r.x/100*c.width,py=r.y/100*c.height;x.beginPath();x.arc(px,py,R,0,7);x.fillStyle=indOf(r.ind).c;x.fill();x.lineWidth=R*.25;x.strokeStyle='#fff';x.stroke();x.fillStyle='#fff';x.font=`bold ${Math.round(R*1.05)}px Helvetica,Arial`;x.textAlign='center';x.textBaseline='middle';x.fillText(String(nums[r.id]||''),px,py+1)});
   return {d:c.toDataURL('image/jpeg',.8),w:c.width,h:c.height};
 }
@@ -540,22 +561,24 @@ async function buildPDF(o,prog){
   // grupos
   const groups=[];
   DATA.units.slice().sort((a,b)=>FLOORS.indexOf(a.fl)-FLOORS.indexOf(b.fl)||a.door-b.door).forEach(u=>{const l=recs.filter(r=>r.u==u.id);if(l.length)groups.push({u,l})});
-  ZC.forEach(([k,n])=>{const l=recs.filter(r=>r.u=='ZC'&&r.z==k);if(l.length)groups.push({zc:n,l})});
+  ZC.forEach(([k,n])=>{const l=recs.filter(r=>r.u=='ZC'&&r.z==k);if(l.length)groups.push({zc:n,k,l})});
   let done=0;const total=recs.length;
   for(const g of groups){
     need(30);
     doc.setFillColor(...K);doc.rect(M,y,W-2*M,8,'F');doc.setFillColor(...A);doc.rect(M,y+8,W-2*M,.8,'F');
     doc.setTextColor(255);doc.setFontSize(10.5);doc.text(g.u?`Vivienda ${uName(g.u)}  ·  ${FLN[g.u.fl]}  ·  Tipología ${g.u.tip}`:`Zonas comunes  ·  ${g.zc}`,M+3,y+5.4);doc.setFontSize(8.5);doc.text(`${g.l.length} repaso${g.l.length>1?'s':''}`,W-M-3,y+5.4,{align:'right'});y+=13;
-    const nums=g.u?pinNums(g.u.id):{};
+    const pkg=g.k=='parking';const nums=g.u?pinNums(g.u.id):pkg?{...pinNumsPk('S1'),...pinNumsPk('S2')}:{};
     if(o.planos&&g.u&&g.l.some(r=>r.x!=null)){try{const p=await planPins(g.u,g.l);let w=W-2*M,h=w*p.h/p.w;if(h>110){h=110;w=h*p.w/p.h}need(h+4);doc.addImage(p.d,'JPEG',M+(W-2*M-w)/2,y,w,h);y+=h+5}catch(e){}}
-    const sorted=g.l.slice().sort((a,b)=>(nums[a.id]||999)-(nums[b.id]||999)||a.ts-b.ts);
+    if(o.planos&&pkg){for(const [L,LN] of PK){const pl=g.l.filter(r=>r.pl==L&&r.x!=null);if(!pl.length)continue;try{const p=await planPins(null,pl,'planos/'+L+'.jpg',pinNumsPk(L));let w=W-2*M,h=w*p.h/p.w;if(h>120){h=120;w=h*p.w/p.h}need(h+10);doc.setFontSize(7.5);doc.setTextColor(...G);doc.text(('Parking · '+LN).toUpperCase(),M,y);y+=2.5;doc.addImage(p.d,'JPEG',M+(W-2*M-w)/2,y,w,h);y+=h+5}catch(e){}}}
+    const pko=r=>pkg?(r.pl=='S2'?1:r.pl=='S1'?0:2):0;
+    const sorted=g.l.slice().sort((a,b)=>pko(a)-pko(b)||(nums[a.id]||999)-(nums[b.id]||999)||a.ts-b.ts);
     for(const r of sorted){
       const i=indOf(r.ind);const fotos=o.fotos?vis(r).slice(0,3):[];const tw=fotos.length?W-2*M-23-fotos.length*25:W-2*M-23;
       doc.setFontSize(9.5);const lines=doc.splitTextToSize(r.txt||'(sin descripción)',tw);
       const th=5+lines.length*4.2+5;const rh=Math.max(th,fotos.length?25:0,12)+3;need(rh);
       doc.setDrawColor(...K);doc.setLineWidth(.35);doc.rect(M,y,7,7);doc.setFontSize(5.5);doc.setTextColor(...G);doc.text('HECHO',M+3.5,y+9.6,{align:'center'});
       doc.setFillColor(...hex2rgb(i.c));doc.circle(M+13,y+3.5,3.2,'F');doc.setTextColor(255);doc.setFontSize(7.5);doc.text(String(nums[r.id]||'·'),M+13,y+4.6,{align:'center'});
-      const tx=M+20;CB.push({p:doc.getNumberOfPages(),id:r.id,box:[M,y,7,7],st:[tx,y+3.9,tw,lines.length*4.2],n:lines.length,done:r.estado!='pendiente'});doc.setTextColor(...G);doc.setFontSize(7.5);doc.text(`${zoneName(r)}  ·  ${r.cat}${r.loc?'  ·  '+r.loc:''}`.toUpperCase(),tx,y+2.5);
+      const tx=M+20;CB.push({p:doc.getNumberOfPages(),id:r.id,box:[M,y,7,7],st:[tx,y+3.9,tw,lines.length*4.2],n:lines.length,done:r.estado!='pendiente'});doc.setTextColor(...G);doc.setFontSize(7.5);doc.text(`${zoneName(r)}${r.pl?' '+pkName(r.pl):''}  ·  ${r.cat}${r.loc?'  ·  '+r.loc:''}${(r.aud||[]).length?'  ·  nota de voz en la app':''}`.toUpperCase(),tx,y+2.5);
       doc.setTextColor(...K);doc.setFontSize(9.5);doc.text(lines,tx,y+7.2);
       const my=y+7.2+lines.length*4.2;doc.setFontSize(7.5);doc.setTextColor(...G);doc.text(`${i.n}   ·   ${ESTN[r.estado]}   ·   ${uN(r.autor)||'—'}   ·   ${new Date(r.ts).toLocaleDateString('es-ES')}`,tx,my);
       if(r.estado!='pendiente'){doc.setTextColor(...(r.estado=='hecho'?A:K));doc.text(ESTN[r.estado].toUpperCase(),tx+tw,y+2.5,{align:'right'})}
@@ -606,7 +629,7 @@ function drawPdf(msg){
    ${o.amb=='planta'?`<select class="sel" onchange="PO.ref=this.value;PDFBLOB=null;drawPdf()">${FLOORS.map(f=>`<option value="${f}" ${o.ref==f?'selected':''}>${FLN[f]}</option>`).join('')}</select>`:''}</div>
    <div class="fld"><span class="lbl">Industrial</span><select class="sel" onchange="PO.ind=this.value;PO.mail=PO.ind?(indOf(PO.ind).m||''):PO.mail;PDFBLOB=null;drawPdf()"><option value="">Todos los industriales</option>${IND.map(i=>`<option value="${i.id}" ${o.ind==i.id?'selected':''}>${esc(i.n)}</option>`).join('')}</select></div>
    <div class="fld"><span class="lbl">Estados</span><div class="chips"><button class="chip ${o.est=='pend'?'on':''}" onclick="PO.est='pend';PDFBLOB=null;drawPdf()">Pendientes y hechos</button><button class="chip ${o.est=='all'?'on':''}" onclick="PO.est='all';PDFBLOB=null;drawPdf()">Todos, incluidos validados</button></div></div>
-   <div class="fld"><span class="lbl">Contenido</span><div class="chips">${o.amb!='zc'?`<button class="chip ${o.planos?'on':''}" onclick="PO.planos=!PO.planos;PDFBLOB=null;drawPdf()">${o.planos?'✓ ':''}Planos con puntos</button>`:''}<button class="chip ${o.fotos?'on':''}" onclick="PO.fotos=!PO.fotos;PDFBLOB=null;drawPdf()">${o.fotos?'✓ ':''}Fotografías</button></div></div>
+   <div class="fld"><span class="lbl">Contenido</span><div class="chips"><button class="chip ${o.planos?'on':''}" onclick="PO.planos=!PO.planos;PDFBLOB=null;drawPdf()">${o.planos?'✓ ':''}Planos con puntos</button><button class="chip ${o.fotos?'on':''}" onclick="PO.fotos=!PO.fotos;PDFBLOB=null;drawPdf()">${o.fotos?'✓ ':''}Fotografías</button></div></div>
    <p style="margin-top:16px;font-size:14px"><b>${n}</b> repaso${n==1?'':'s'} en el informe</p>
    <div class="btns"><button class="btn" id="pdfDl" onclick="pdfDownload()" ${n?'':'disabled'}>Descargar PDF</button><button class="btn o" onclick="closeSheet()">Cerrar</button></div>
    <div class="fld" style="border-top:1px solid var(--g5);padding-top:16px;margin-top:22px"><span class="lbl">Enviar por email</span>
@@ -816,7 +839,7 @@ function catBlock(list,cats,sel){
 }
 function repList(list,nums){
   list=list.slice().sort((a,b)=>(a.estado=='validado')-(b.estado=='validado')||b.ts-a.ts);
-  return list.map(r=>{const i=indOf(r.ind);return `<div class="rp" onclick="openRep('${r.id}')"><div class="ph">${vis(r)[0]?`<img src="${esc(phSrc(vis(r)[0]))}" data-f="${esc(vis(r)[0])}" alt="">`:'sin foto'}<i style="background:${i.c}">${nums&&nums[r.id]||''}</i></div><div class="tx">${esc(r.txt)||'<span style="color:var(--g3)">(sin descripción)</span>'}<small>${esc(r.cat)} · ${esc(i.n)}${r.autor?' · '+esc(uN(r.autor)):''}${r.loc?' · '+esc(r.loc):''}${vis(r).length>1?' · '+vis(r).length+' fotos':''}${r._local?' · <b style="color:var(--a)">en el móvil</b>':''}</small></div><span class="st ${r.estado}">${ESTN[r.estado]}</span></div>`}).join('')||'<div class="empty">Sin repasos todavía</div>';
+  return list.map(r=>{const i=indOf(r.ind);return `<div class="rp" onclick="openRep('${r.id}')"><div class="ph">${vis(r)[0]?`<img src="${esc(phSrc(vis(r)[0]))}" data-f="${esc(vis(r)[0])}" alt="">`:'sin foto'}<i style="background:${i.c}">${nums&&nums[r.id]||''}</i></div><div class="tx">${esc(r.txt)||'<span style="color:var(--g3)">(sin descripción)</span>'}<small>${esc(r.cat)} · ${esc(i.n)}${r.autor?' · '+esc(uN(r.autor)):''}${r.pl?' · '+pkName(r.pl):''}${r.loc?' · '+esc(r.loc):''}${vis(r).length>1?' · '+vis(r).length+' fotos':''}${(r.aud||[]).length?' · 🎤 '+r.aud.length:''}${r._local?' · <b style="color:var(--a)">en el móvil</b>':''}</small></div><span class="st ${r.estado}">${ESTN[r.estado]}</span></div>`}).join('')||'<div class="empty">Sin repasos todavía</div>';
 }
 let selCat=null, lastZone='';
 function vZona(uid,zk){
@@ -841,9 +864,19 @@ function vZC(k){
   const l=of(r=>r.u=='ZC'&&r.z==k);const shown=selCat?l.filter(r=>r.cat==selCat):l;
   $('#app').innerHTML=`<div class="crumbs"><a onclick="go('')">Bloque 5</a>›<a onclick="go('zonas')">Zonas comunes</a>›<span>${z[1]}</span></div>
   <h1>${z[1]}</h1><div class="sub">${z[2]} · ${l.filter(pend).length} pendientes</div>
+  ${k=='parking'?parkHTML(l):''}
   ${catBlock(l,CATS[k],selCat)}
   ${RO()?'':`<button class="add" onclick="newRep('ZC','${k}')">+ Nuevo repaso${selCat?' · '+esc(selCat):''}</button>`}
-  <div class="grp"><span>${selCat?esc(selCat):'Todos los repasos'}</span><span>${shown.length}</span></div>${repList(shown)}`;
+  <div class="grp"><span>${selCat?esc(selCat):'Todos los repasos'}</span><span>${shown.length}</span></div>${repList(k=='parking'?shown.slice().sort((a,b)=>(a.pl==pkL?0:1)-(b.pl==pkL?0:1)):shown,k=='parking'?pinNumsPk(pkL):null)}`;
+}
+function parkHTML(l){
+  const nums=pinNumsPk(pkL);const pins=l.filter(r=>r.pl==pkL&&r.x!=null&&(filt=='all'||pend(r)));
+  return `<div class="pks">${PK.map(([L,n,d])=>`<button class="${pkL==L?'on':''}" onclick="setPk('${L}')">${n} · ${l.filter(r=>r.pl==L&&pend(r)).length}<small>${d}</small></button>`).join('')}</div>
+  <div class="pv"><div class="pvs" id="pvs"><div class="pi" style="width:${zoom*100}%"><img src="planos/${pkL}.jpg" alt="Plano ${pkName(pkL)}" draggable="false">
+   ${pins.map(r=>`<div class="pin ${r.estado}" style="left:${r.x}%;top:${r.y}%;background:${indOf(r.ind).c}" onclick="event.stopPropagation();openRep('${r.id}')">${nums[r.id]||''}</div>`).join('')}</div></div>
+   <div class="pvbar"><div class="seg"><button class="${filt=='pend'?'on':''}" onclick="filt='pend';render()">Pendientes</button><button class="${filt=='all'?'on':''}" onclick="filt='all';render()">Todos</button></div>
+   <div class="zb"><button onclick="zm(-1)">−</button><button onclick="zm(0)">${Math.round(zoom*100)}%</button><button onclick="zm(1)">+</button></div></div></div>
+  ${legend(l.filter(r=>r.pl==pkL))}`;
 }
 function vIndustrial(id){
   const i=indOf(id);const l=of(r=>r.ind==id&&r.estado!='validado');
@@ -868,33 +901,36 @@ async function copyInd(id){
 /* ---------- formulario ---------- */
 let F=null;
 function openSheet(html){$('#sh').innerHTML=html;$('#ov').classList.add('on')}
-function closeSheet(){$('#ov').classList.remove('on');F=null;stopDict();clearDraft()}
+function closeSheet(){if(REC)stopRec(false);stopAud();$('#ov').classList.remove('on');F=null;stopDict();clearDraft()}
 $('#ov').onclick=e=>{if(e.target.id=='ov')closeSheet()};
 function newRep(uid,zk){if(RO())return;
   const cats=uid=='ZC'?CATS[zk]:CATS[zonesOf(U[uid]).find(z=>z.k==zk).t];
   const c=cats.find(c=>c[0]==selCat)||cats[0];
-  F={u:uid,z:zk,cat:c[0],ind:c[1],txt:'',fotos:[],ocultas:[],x:null,y:null,estado:'pendiente',loc:''};drawForm(true);
+  F={u:uid,z:zk,cat:c[0],ind:c[1],txt:'',fotos:[],ocultas:[],aud:[],x:null,y:null,estado:'pendiente',loc:'',pl:uid=='ZC'&&zk=='parking'?pkL:null};drawForm(true);
 }
 let ORIG=null;
-function openRep(id){const r=viewRec(id);if(!r)return;if(RO())return viewRO(r);F=JSON.parse(JSON.stringify(r));F.fotos=vis(r);F.ocultas=[];ORIG=JSON.parse(JSON.stringify(r));drawForm(false)}
+function openRep(id){const r=viewRec(id);if(!r)return;if(RO())return viewRO(r);F=JSON.parse(JSON.stringify(r));F.fotos=vis(r);F.ocultas=[];F.aud=F.aud||[];ORIG=JSON.parse(JSON.stringify(r));drawForm(false)}
 function drawForm(isNew){
   const r=F;const cats=r.u=='ZC'?CATS[r.z]:CATS[zonesOf(U[r.u]).find(z=>z.k==r.z).t];
   const where=r.u=='ZC'?'Zonas comunes · '+zoneName(r):'Vivienda '+uName(U[r.u])+' · '+zoneName(r);
   openSheet(`<span class="lbl">${esc(where)}</span><h3>${isNew?'Nuevo repaso':'Repaso'}</h3>
-  <div class="fld"><span class="lbl">Elemento</span><div class="chips">${cats.map(([n,ind])=>`<button class="chip ${r.cat==n?'on':''}" onclick="F.cat='${esc(n)}';F.ind='${ind}';F.txt=$('#tx').value;drawForm(${isNew})">${n}</button>`).join('')}</div></div>
-  <div class="fld"><span class="lbl">Descripción · escribe o dicta</span>
-   <div class="txrow"><textarea id="tx" placeholder="Ej.: puerta del mueble alto rayada, ajustar bisagra">${esc(r.txt)}</textarea><button class="mic" id="micB" onclick="dict()" title="Dictar"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
-   <div class="chips">${QUICK.map(q=>`<button class="chip" onclick="addQ('${q}')">${q}</button>`).join('')}</div></div>
+  <div class="fld"><span class="lbl">Elemento</span><div class="chips">${cats.map(([n,ind])=>`<button class="chip ${r.cat==n?'on':''}" onclick="F.cat='${esc(n)}';F.ind='${ind}';F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}drawForm(${isNew})">${n}</button>`).join('')}</div></div>
+  <div class="fld"><span class="lbl">Descripción · escribe o graba una nota de voz</span>
+   <div class="txrow"><textarea id="tx" placeholder="Ej.: puerta del mueble alto rayada, ajustar bisagra">${esc(r.txt)}</textarea><button class="mic" id="micB" type="button" title="Nota de voz" aria-label="Grabar nota de voz">${MIC_SVG}</button></div>
+   <div class="recbar" id="recbar"></div>
+   <div class="mhint">Micro: <b>mantén pulsado</b> y suelta para guardar, o <b>toca una vez</b> para empezar y otra para terminar (máx. ${AUD_MAX} s). Para escribir hablando usa el micro del teclado.</div>
+   <div class="auds" id="auds">${audHTML(true)}</div>
+   <div class="chips">${SRok()?`<button class="chip" id="dictB" onclick="dict()">Dictar a texto</button>`:''}${QUICK.map(q=>`<button class="chip" onclick="addQ('${q}')">${q}</button>`).join('')}</div></div>
   <div class="fld"><span class="lbl">Fotografías</span><div class="photos" id="phs">${phHTML()}</div></div>
-  ${r.u=='ZC'?`<div class="fld"><span class="lbl">Ubicación</span><input class="loc" id="loc" placeholder="Ej.: sótano -1, plaza 23 · rellano planta 3" value="${esc(r.loc)}"></div>`:
-   `<div class="fld"><span class="lbl">Punto en el plano</span><div class="pinrow" onclick="F.txt=$('#tx').value;pinMode(${isNew})"><span>${r.x!=null?'Punto marcado ✓':'Marcar dónde está'}</span><span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:${indOf(r.ind).c}"></span>›</span></div></div>`}
+  ${r.u=='ZC'?`<div class="fld"><span class="lbl">Ubicación</span><input class="loc" id="loc" placeholder="${r.z=='parking'?'Ej.: plaza 23 · trastero T12':'Ej.: rellano planta 3'}" value="${esc(r.loc)}"></div>`:''}
+  ${hasPlan(r)?`<div class="fld"><span class="lbl">Punto en el plano${r.u=='ZC'?' · '+pkName(r.pl||pkL):''}</span><div class="pinrow" onclick="F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}pinMode(${isNew})"><span>${r.x!=null?'Punto marcado ✓':'Marcar dónde está'}</span><span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:${indOf(r.ind).c}"></span>›</span></div></div>`:''}
   <div class="fld"><span class="lbl">Industrial</span><div class="chips">${IND.map(i=>`<button class="chip ${r.ind==i.id?'on':''}" onclick="F.ind='${i.id}';F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}drawForm(${isNew})"><i style="background:${i.c}"></i>${esc(i.n)}</button>`).join('')}</div></div>
-  ${isNew?'':`<div class="fld"><span class="lbl">Estado</span><div class="chips">${Object.keys(ESTN).map(e=>`<button class="chip ${r.estado==e?'on':''}" onclick="F.estado='${e}';F.txt=$('#tx').value;drawForm(false)">${ESTN[e]}</button>`).join('')}</div></div>`}
+  ${isNew?'':`<div class="fld"><span class="lbl">Estado</span><div class="chips">${Object.keys(ESTN).map(e=>`<button class="chip ${r.estado==e?'on':''}" onclick="F.estado='${e}';F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}drawForm(false)">${ESTN[e]}</button>`).join('')}</div></div>`}
   <div class="btns"><button class="btn" onclick="submitRep()">${isNew?'Guardar repaso':'Guardar cambios'}</button><button class="btn o" onclick="closeSheet()">Cancelar</button>${isNew?'':`<button class="btn d" onclick="if(window._dc){eliminarRep(F.id)}else{window._dc=1;this.textContent='¿Eliminar? Toca otra vez';this.classList.add('danger')}">Eliminar</button>`}</div>
   ${isNew?'':`<p class="sub" style="font-size:11px;margin-top:12px">Creado por <b>${esc(uN(r.autor)||who(r.by))}</b> el ${new Date(r.ts).toLocaleString('es-ES')}${r.mod?' · último cambio de '+esc(uN(r.modAut)||who(r.modBy))+' el '+new Date(r.mod).toLocaleString('es-ES'):''}${r._local?' · <b style="color:var(--a)">pendiente de subir</b>':''}</p>`}`);
   saveDraft(isNew);names([r.by,r.modBy]);
   window._dc=0;
-  const tx=$('#tx');tx.oninput=()=>{F.txt=tx.value;saveDraft(isNew)};
+  const tx=$('#tx');tx.oninput=()=>{F.txt=tx.value;saveDraft(isNew)};attachMic();updRecBar();(F.aud||[]).forEach(a=>ensureFoto(a));
   if(r.u=='ZC')$('#loc').oninput=e=>{F.loc=e.target.value;saveDraft(isNew)};
 }
 function phHTML(){return F.fotos.map((p,i)=>`<div class="p"><img src="${esc(phSrc(p))}" data-f="${esc(p)}" onclick="lb(this.src)" alt=""><button onclick="F.ocultas=[...(F.ocultas||[]),F.fotos[${i}]];F.fotos.splice(${i},1);$('#phs').innerHTML=phHTML();saveDraft(!F.id)">×</button></div>`).join('')+`<label onclick="pickPh()"><svg viewBox="0 0 24 24"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg>Añadir</label>`}
@@ -906,23 +942,103 @@ $('#fileIn').onchange=async e=>{
   toast(files.length>1?files.length+' fotos guardadas en el móvil':'Foto guardada en el móvil');
 };
 function addQ(q){const t=$('#tx');t.value=(t.value.trim()?t.value.trim()+(/[.,]$/.test(t.value.trim())?' ':', '):'')+(t.value.trim()?q.toLowerCase():q);F.txt=t.value;t.focus()}
-let rec=null;
-function stopDict(){if(rec){try{rec.stop()}catch(e){}rec=null}const m=$('#micB');if(m)m.classList.remove('rec')}
+/* ---------- dictado a texto (solo donde el navegador lo hace bien) ---------- */
+let rec=null,recWd=null;
+function SRok(){return !!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!IS_IOS}
+function stopDict(){clearTimeout(recWd);if(rec){const r=rec;rec=null;try{r.onresult=r.onerror=r.onend=null;r.abort()}catch(e){}}const m=$('#dictB');if(m){m.classList.remove('on');m.textContent='Dictar a texto'}}
 function dict(){
-  if(rec){stopDict();return}
+  if(rec){stopDict();return}if(REC)return;
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const t=$('#tx');
-  const fallback=()=>{stopDict();t.focus();toast('Usa el micrófono del teclado del móvil para dictar')};
-  if(!SR)return fallback();
-  try{rec=new SR();rec.lang='es-ES';rec.interimResults=false;rec.continuous=true;
-   rec.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal){const s=e.results[i][0].transcript.trim();t.value=(t.value.trim()?t.value.trim()+' ':'')+s.charAt(0).toUpperCase()+s.slice(1);F.txt=t.value}}};
-   rec.onerror=fallback;rec.onend=()=>stopDict();rec.start();$('#micB').classList.add('rec');toast('Escuchando… toca otra vez para parar');
-  }catch(e){fallback()}
+  if(!SR){toast('Usa el micrófono del teclado para dictar');return}
+  try{const r=new SR();rec=r;r.lang='es-ES';r.interimResults=false;r.continuous=false;r.maxAlternatives=1;
+   r.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal){const s=e.results[i][0].transcript.trim();if(!s)continue;t.value=(t.value.trim()?t.value.trim()+' ':'')+s.charAt(0).toUpperCase()+s.slice(1);if(F){F.txt=t.value;saveDraft(!F.id)}}}};
+   r.onerror=e=>{stopDict();if(e&&e.error!='no-speech'&&e.error!='aborted')toast('El dictado no está disponible: usa el micro del teclado')};
+   r.onend=()=>stopDict();r.start();const m=$('#dictB');if(m){m.classList.add('on');m.textContent='Escuchando… toca para parar'}
+   recWd=setTimeout(stopDict,15000);
+  }catch(e){stopDict();toast('Usa el micrófono del teclado para dictar')}
+}
+
+/* ---------- notas de voz: mantener pulsado o tocar para empezar / terminar ---------- */
+const AUD_MAX=60;
+const MIC_SVG='<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const STOP_SVG='<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" style="fill:#fff;stroke:#fff"/></svg>';
+let REC=null,PLAYER=null,PLAYID=null;
+function audMime(){if(!window.MediaRecorder||!MediaRecorder.isTypeSupported)return '';for(const m of ['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/aac','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus']){try{if(MediaRecorder.isTypeSupported(m))return m}catch(e){}}return ''}
+const audDur=id=>{const m=/_(\d+)$/.exec(id||'');return m?+m[1]:0};
+const fmtS=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function audHTML(edit){const l=(F&&F.aud)||[];return l.map((a,i)=>`<div class="au"><button type="button" class="aup ${PLAYID==a?'on':''}" data-a="${a}" onclick="playAud('${a}')">${PLAYID==a?'❚❚':'▶'}</button><span>Nota de voz ${i+1} · ${fmtS(audDur(a))}</span>${edit?`<button type="button" class="aux" onclick="delAud(${i})" aria-label="Quitar">×</button>`:''}</div>`).join('')}
+function audListRO(l){return (l||[]).map((a,i)=>`<div class="au"><button type="button" class="aup" data-a="${a}" onclick="playAud('${a}')">▶</button><span>Nota de voz ${i+1} · ${fmtS(audDur(a))}</span></div>`).join('')}
+function delAud(i){if(!F)return;const a=F.aud[i];if(PLAYID==a)stopAud();F.aud.splice(i,1);$('#auds').innerHTML=audHTML(true);saveDraft(!F.id)}
+function d2blob(d){const i=d.indexOf(',');const mt=(/data:([^;,]+)/.exec(d)||[,'audio/mp4'])[1];const b=atob(d.slice(i+1));const u=new Uint8Array(b.length);for(let k=0;k<b.length;k++)u[k]=b.charCodeAt(k);return new Blob([u],{type:mt})}
+function setPlayBtns(){document.querySelectorAll('.aup').forEach(b=>{const on=b.dataset.a==PLAYID;b.classList.toggle('on',on);b.textContent=on?'❚❚':'▶'})}
+function stopAud(){if(PLAYER){try{PLAYER.pause()}catch(e){}try{URL.revokeObjectURL(PLAYER.src)}catch(e){}}PLAYER=null;PLAYID=null;setPlayBtns()}
+function playAud(id){
+  if(REC)return;if(PLAYID==id){stopAud();return}stopAud();
+  const d=FOTO[id];if(!d){toast('Cargando la nota de voz… vuelve a tocar en un momento');ensureFoto(id);return}
+  try{const a=new Audio();a.preload='auto';a.src=URL.createObjectURL(d2blob(d));PLAYER=a;PLAYID=id;setPlayBtns();
+    a.onended=()=>stopAud();a.onerror=()=>{stopAud();toast('Este dispositivo no puede reproducir esa nota de voz')};
+    const p=a.play();if(p&&p.catch)p.catch(()=>{if(PLAYER===a){stopAud();toast('Toca otra vez para reproducir')}});
+  }catch(e){stopAud();toast('No se ha podido reproducir')}
+}
+function attachMic(){const b=$('#micB');if(!b)return;
+  b.oncontextmenu=e=>{e.preventDefault();return false};
+  b.onpointerdown=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}
+    if(REC){if(REC.mode!='pending')stopRec(true);return}
+    startRec()};
+  const up=e=>{if(!REC||REC.mode!='pending')return;
+    if(!REC.mr){REC.mode='tap';updRecBar();return}
+    if(Date.now()-REC.tStart>600)stopRec(true);else{REC.mode='tap';updRecBar()}};
+  b.onpointerup=up;b.onpointercancel=up;
+  b.onclick=e=>e.preventDefault();
+}
+function updRecBar(){const bar=$('#recbar'),b=$('#micB');if(!bar)return;
+  if(!REC){bar.classList.remove('on');bar.innerHTML='';if(b){b.classList.remove('rec');b.innerHTML=MIC_SVG}return}
+  const t=REC.tStart?(Date.now()-REC.tStart)/1000:0;
+  bar.classList.add('on');if(b){b.classList.add('rec');b.innerHTML=REC.mode=='tap'?STOP_SVG:MIC_SVG}
+  bar.innerHTML=`<span class="dot"></span><span class="rt">${REC.mr?fmtS(t)+' / '+fmtS(AUD_MAX):'…'}</span><span class="rh">${!REC.mr?'Abriendo el micrófono…':REC.mode=='pending'?'Suelta para guardar':'Toca ■ o «Guardar» para terminar'}</span><button type="button" onclick="stopRec(false)">Cancelar</button><button type="button" class="sv" onclick="stopRec(true)">Guardar</button>`;
+}
+async function startRec(){
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder)){toast('Este navegador no permite grabar audio. Usa el micro del teclado para dictar.');return}
+  stopDict();stopAud();
+  const rc={mode:'pending',chunks:[],t0:Date.now()};REC=rc;updRecBar();
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
+  catch(err){if(REC===rc){REC=null;updRecBar()}const n=err&&err.name;toast(n=='NotAllowedError'||n=='SecurityError'?'Permite el micrófono (en iPad: Ajustes › Safari › Micrófono › Permitir)':'No se ha podido abrir el micrófono');return}
+  if(REC!==rc){stream.getTracks().forEach(t=>t.stop());return}
+  const mime=audMime();let mr;
+  try{mr=new MediaRecorder(stream,mime?{mimeType:mime,audioBitsPerSecond:32000}:{audioBitsPerSecond:32000})}
+  catch(e){try{mr=new MediaRecorder(stream)}catch(e2){stream.getTracks().forEach(t=>t.stop());REC=null;updRecBar();toast('No se puede grabar audio en este dispositivo');return}}
+  rc.stream=stream;rc.mime=mr.mimeType||mime||'audio/mp4';
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)rc.chunks.push(e.data)};
+  mr.onstop=()=>finishRec(rc);mr.onerror=()=>{rc.save=false;finishRec(rc)};
+  try{mr.start(1000)}catch(e){stream.getTracks().forEach(t=>t.stop());REC=null;updRecBar();toast('No se ha podido empezar a grabar');return}
+  rc.mr=mr;rc.tStart=Date.now();
+  rc.timer=setInterval(()=>{if(REC!==rc){clearInterval(rc.timer);return}updRecBar();if((Date.now()-rc.tStart)/1000>=AUD_MAX){stopRec(true);toast('Máximo '+AUD_MAX+' s: nota guardada')}},250);
+  updRecBar();
+}
+function stopRec(save,after){const rc=REC;if(!rc)return;REC=null;rc.save=!!save;if(after)rc.after=after;clearInterval(rc.timer);updRecBar();
+  if(rc.mr&&rc.mr.state!='inactive'){try{rc.mr.requestData&&rc.mr.requestData()}catch(e){}try{rc.mr.stop()}catch(e){finishRec(rc)}setTimeout(()=>finishRec(rc),2500)}
+  else finishRec(rc)}
+async function finishRec(rc){if(rc.fin)return;rc.fin=1;
+  try{rc.stream&&rc.stream.getTracks().forEach(t=>t.stop())}catch(e){}
+  const after=()=>{if(rc.after)setTimeout(rc.after,0)};
+  if(!rc.save||!rc.mr){after();return}
+  const dur=(Date.now()-rc.tStart)/1000;
+  if(dur<1){toast('Muy corto. Mantén pulsado el micro mientras hablas, o tócalo una vez para empezar.');after();return}
+  const blob=new Blob(rc.chunks,{type:(rc.mime||'audio/mp4').split(';')[0]});
+  if(!blob.size){toast('No se ha grabado sonido. Vuelve a probar.');after();return}
+  const d=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(blob)});
+  if(!d){toast('No se ha podido guardar el audio');after();return}
+  const id='a'+uid()+'_'+Math.max(1,Math.round(dur));FOTO[id]=d;try{await iPut('fotos',{id,d,local:true})}catch(e){}
+  if(F){F.aud=[...(F.aud||[]),id];const el=$('#auds');if(el)el.innerHTML=audHTML(true);saveDraft(!F.id);toast('Nota de voz guardada ('+fmtS(dur)+')')}
+  after();
 }
 async function anular(){const r=JSON.parse(JSON.stringify(F));r.anulado=true;closeSheet();await saveRep(r,['anulado'],'anulado');toast('Repaso anulado (se puede recuperar en Registro)')}
 async function recuperar(id){const r=viewRec(id);if(!r)return;const x={...r};x.anulado=false;x.fotos=[];x.ocultas=[];await saveRep(x,['anulado'],'recuperado');toast('Repaso recuperado')}
 async function submitRep(){
+  if(REC){stopRec(true,()=>submitRep());return}
   F.txt=$('#tx').value.trim();if(F.u=='ZC')F.loc=($('#loc')||{}).value||'';
-  if(!F.txt&&!F.fotos.length){toast('Añade una descripción o una foto');return}
+  if(!F.txt&&!F.fotos.length&&!(F.aud||[]).length){toast('Añade una descripción, una foto o una nota de voz');return}
   const isNew=!F.id;const r=JSON.parse(JSON.stringify(F));
   if(!isNew&&ORIG&&r.estado!==ORIG.estado){const t=Date.now();
     if(r.estado=='hecho'){r.tHecho=r.tHecho||t}
@@ -931,18 +1047,19 @@ async function submitRep(){
   if(isNew){closeSheet();await saveRep(r,[],'alta');toast('Repaso guardado');return}
   const campos=diffCampos(ORIG,r);const fotosNuevas=r.fotos.some(f=>!(ORIG.fotos||[]).includes(f));const quitadas=(r.ocultas||[]).length;
   if(!campos.length&&!fotosNuevas&&!quitadas){closeSheet();return}
-  const acc=campos.includes('estado')?'estado: '+ESTN[r.estado]:fotosNuevas&&!campos.length?'fotos añadidas':'editado';
+  const acc=campos.includes('estado')?'estado: '+ESTN[r.estado]:fotosNuevas&&!campos.length?'fotos añadidas':campos.length==1&&campos[0]=='aud'?'nota de voz':'editado';
   closeSheet();await saveRep(r,campos,acc);toast('Cambios guardados');
 }
 function viewRO(r){
-  const i=indOf(r.ind),f=vis(r);const where=r.u=='ZC'?'Zonas comunes · '+zoneName(r):'Vivienda '+uName(U[r.u])+' · '+zoneName(r);
+  const i=indOf(r.ind),f=vis(r);(r.aud||[]).forEach(a=>ensureFoto(a));const where=r.u=='ZC'?'Zonas comunes · '+zoneName(r):'Vivienda '+uName(U[r.u])+' · '+zoneName(r);
   openSheet(`<span class="lbl">${esc(where)}</span><h3>${esc(r.cat)}</h3>
    <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><span class="st ${r.estado}">${ESTN[r.estado]}</span>${r.anulado?'<span class="st">Anulado</span>':''}</div>
    <p style="font-size:16px;margin-top:14px;white-space:pre-wrap">${esc(r.txt)||'<span class="sub">(sin descripción)</span>'}</p>
    ${r.loc?`<p class="sub" style="margin-top:6px">Ubicación: ${esc(r.loc)}</p>`:''}
    <div class="fld"><span class="lbl">Industrial</span><p style="margin-top:6px;display:flex;gap:8px;align-items:center"><span style="width:12px;height:12px;border-radius:50%;background:${i.c}"></span>${esc(i.n)}</p></div>
    ${f.length?`<div class="fld"><span class="lbl">Fotografías · ${f.length}</span><div class="photos">${f.map(p=>`<div class="p"><img src="${esc(phSrc(p))}" data-f="${esc(p)}" onclick="lb(this.src)" alt=""></div>`).join('')}</div></div>`:''}
-   ${r.u!='ZC'&&r.x!=null?`<div class="fld"><span class="lbl">Situación en plano</span><div class="pv" style="margin-top:6px"><div class="pvs" style="max-height:46vh"><div class="pi"><img src="planos/${r.u}.jpg" alt=""><div class="pin ${r.estado}" style="left:${r.x}%;top:${r.y}%;background:${i.c}"></div></div></div></div></div>`:''}
+   ${(r.aud||[]).length?`<div class="fld"><span class="lbl">Notas de voz</span><div class="auds">${audListRO(r.aud)}</div></div>`:''}
+   ${plImg(r)&&r.x!=null?`<div class="fld"><span class="lbl">Situación en plano${r.pl?' · '+pkName(r.pl):''}</span><div class="pv" style="margin-top:6px"><div class="pvs" style="max-height:46vh"><div class="pi"><img src="${plImg(r)}" alt=""><div class="pin ${r.estado}" style="left:${r.x}%;top:${r.y}%;background:${i.c}"></div></div></div></div></div>`:''}
    <div class="fld"><span class="lbl">Seguimiento</span><p class="sub" style="font-size:12.5px;margin-top:6px;line-height:1.7">Apuntado por <b>${esc(uN(r.autor)||'—')}</b> el ${new Date(r.ts).toLocaleString('es-ES')}${r.tHecho?`<br>Hecho el ${new Date(r.tHecho).toLocaleString('es-ES')} (${fmtD((r.tHecho-r.ts)/DAY)} desde que se apuntó)`:''}${r.tValid?`<br>Validado el ${new Date(r.tValid).toLocaleString('es-ES')}`:''}${r.rech?`<br>Devuelto ${r.rech} vez${r.rech>1?'es':''} al industrial`:''}${r.mod?`<br>Último cambio de ${esc(uN(r.modAut)||'—')} el ${new Date(r.mod).toLocaleString('es-ES')}`:''}</p></div>
    <div class="btns"><button class="btn o" onclick="closeSheet()">Cerrar</button></div>`);
 }
@@ -950,7 +1067,7 @@ function viewRO(r){
 /* eliminar un repaso por error: se borra del todo (repaso, fotos e historial), sin dejar registro */
 async function eliminarRep(id){
   if(RO()||!id)return;const r=viewRec(id)||{};closeSheet();
-  const fotos=[...new Set([...(r.fotos||[]),...(r.ocultas||[])])];
+  const fotos=[...new Set([...(r.fotos||[]),...(r.ocultas||[]),...(r.aud||[])])];
   for(const k of Object.keys(JN)){const o=JN[k];if(RUN.has(k))continue;if((o.col=='repasos'&&o.doc==id)||((o.col=='fotos'||o.col=='historial')&&o.data&&o.data.rid==id)){delete JN[k];try{await iDel('journal',k)}catch(e){}try{localStorage.removeItem('rp-j-'+k)}catch(e){}}}
   for(const f of fotos){if(!f.startsWith('data:')){await jAdd({del:true,col:'fotos',doc:f});try{await iDel('fotos',f)}catch(e){}delete FOTO[f]}}
   await jAdd({del:true,col:'repasos',doc:id});
@@ -962,11 +1079,11 @@ async function eliminarRep(id){
 /* marcar en plano */
 let pinZoom=1;
 function pinMode(isNew){
-  const u=U[F.u];$('#ov').classList.remove('on');
+  const zc=F.u=='ZC';const u=zc?null:U[F.u];if(zc&&!F.pl)F.pl=pkL;$('#ov').classList.remove('on');if(REC)stopRec(true);
   const draw=()=>{
-    const others=of(r=>r.u==u.id&&r.x!=null&&r.id!=F.id&&pend(r));
-    $('#full').innerHTML=`<div class="top"><div><span class="lbl">Vivienda ${uName(u)} · ${esc(zoneName(F))}</span><div style="font-size:15px">Toca el plano donde está el repaso</div></div><div class="zb"><button onclick="pinZoom=Math.max(1,pinZoom-.5);_pd()">−</button><button onclick="pinZoom=Math.min(4,pinZoom+.5);_pd()">+</button></div></div>
-    <div class="pvs" id="pms"><div class="pi" id="pmi" style="width:${pinZoom*100}%"><img src="planos/${u.id}.jpg" draggable="false" alt="">
+    const others=zc?of(r=>r.u=='ZC'&&r.z=='parking'&&r.pl==F.pl&&r.x!=null&&r.id!=F.id&&pend(r)):of(r=>r.u==u.id&&r.x!=null&&r.id!=F.id&&pend(r));
+    $('#full').innerHTML=`<div class="top"><div><span class="lbl">${zc?'Parking · '+pkName(F.pl):'Vivienda '+uName(u)+' · '+esc(zoneName(F))}</span><div style="font-size:15px">Toca el plano donde está el repaso</div></div>${zc?`<div class="seg">${PK.map(([L,n])=>`<button class="${F.pl==L?'on':''}" onclick="if(F.pl!='${L}'){F.pl='${L}';F.x=null;F.y=null;_pd()}">${n}</button>`).join('')}</div>`:''}<div class="zb"><button onclick="pinZoom=Math.max(1,pinZoom-.5);_pd()">−</button><button onclick="pinZoom=Math.min(4,pinZoom+.5);_pd()">+</button></div></div>
+    <div class="pvs" id="pms"><div class="pi" id="pmi" style="width:${pinZoom*100}%"><img src="${zc?'planos/'+F.pl+'.jpg':'planos/'+u.id+'.jpg'}" draggable="false" alt="">
      ${others.map(r=>`<div class="pin" style="left:${r.x}%;top:${r.y}%;background:${indOf(r.ind).c};opacity:.45;pointer-events:none"></div>`).join('')}
      ${F.x!=null?`<div class="pin tmp" style="left:${F.x}%;top:${F.y}%;background:${indOf(F.ind).c}"></div>`:''}</div></div>
     <div class="top" style="border-top:1px solid var(--k);border-bottom:0"><button class="btn o" onclick="F.x=null;F.y=null;_pd()">Quitar punto</button><button class="btn" onclick="$('#full').classList.remove('on');drawForm(${isNew})">Confirmar</button></div>`;
@@ -989,7 +1106,7 @@ const HELP=[
  {"img":"02_inicio","t":"Elige planta y vivienda","p":["Toca una planta para desplegarla: verás las viviendas y cuántos repasos pendientes tiene cada una.","Toca la vivienda en la lista o directamente en el plano de la planta.","Botón PDF: informe de todo el bloque."]},
  {"img":"03_vivienda","t":"El plano de la vivienda","p":["Toca una estancia del plano (Cocina, Baño, Dormitorio…) para entrar en ella.","Cada punto de color es un repaso. El color indica el industrial y el número, el orden.","Debajo tienes todas las estancias con sus pendientes, más Terraza y Generales."]},
  {"img":"04_estancia","t":"Dentro de cada estancia","p":["Elige el elemento: muebles, encimera, electrodomésticos, grifería…","Pulsa «+ Nuevo repaso» para apuntar un desperfecto.","Toca cualquier repaso de la lista para verlo o cambiarlo."]},
- {"img":"05_nuevo","t":"Apunta el repaso","p":["Elige el elemento afectado.","Escribe el fallo o usa las palabras rápidas (Rayado, Mancha, Bisagra…).","Dicta con el micrófono o con el micro del teclado.","Añade una o varias fotos.","Marca el punto exacto en el plano. El industrial se asigna solo y puedes cambiarlo."]},
+ {"img":"05_nuevo","t":"Apunta el repaso","p":["Elige el elemento afectado.","Escribe el fallo o usa las palabras rápidas (Rayado, Mancha, Bisagra…).","Micro: mantén pulsado y suelta para guardar una nota de voz, o tócalo una vez para empezar y otra para terminar. Para escribir hablando, usa el micro del teclado.","Añade una o varias fotos.","Marca el punto exacto en el plano. El industrial se asigna solo y puedes cambiarlo."]},
  {"img":"06_punto","t":"Marca dónde está","p":["Toca el plano en el lugar del desperfecto: aparece el punto con el color del industrial.","Pulsa «Confirmar» y luego «Guardar repaso»."]},
  {"img":"07_estado","t":"Hecho, validado o eliminado","p":["Cambia el estado: Pendiente → Hecho (el industrial lo ha reparado) → Validado (revisado y correcto).","«Eliminar» borra un repaso apuntado por error (toca dos veces para confirmar)."]},
  {"img":"08_progreso","t":"Progreso de la obra","p":["Porcentaje validado, resuelto por los industriales y total de repasos.","Industriales ordenados por cómo responden: % resuelto, tiempo medio y repaso más antiguo."]},
