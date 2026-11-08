@@ -360,7 +360,9 @@ const CATS={
  jardin:[['Jardinería','jar'],['Pavimento','ali'],['Riego','fon'],['Vallas y cerrajería','cer'],['Iluminación','elc'],['Otros','con']],
  cubierta:[['Impermeabilización','imp'],['Desagües','fon'],['Instalaciones','cli'],['Ventilación','vtw'],['Barandillas y línea de vida','cer'],['Otros','con']]
 };
-const ZC=[['parking','Parking','Plantas sótano'],['vestibulos','Vestíbulos','Entrada y rellanos'],['pasillos','Pasillos','Por planta'],['escaleras','Escaleras','Núcleo vertical'],['jardin','Zona jardín PB','Exterior planta baja'],['cubierta','Cubierta','Terrado e instalaciones']];
+const ZC=[['parking2','Parking planta −2','Plazas 48–97 · trasteros T47–T92','S2'],['parking1','Parking planta −1','Plazas 1–47 · trasteros T01–T46','S1'],['vestibulos','Vestíbulos','Entrada y rellanos'],['pasillos','Pasillos','Por planta'],['escaleras','Escaleras','Núcleo vertical'],['jardin','Planta Baja Patio','Patio y zonas verdes PB','PBP'],['cubierta','Cubierta','Terrado e instalaciones','CUB']];
+CATS.parking1=CATS.parking2=CATS.parking;
+const zcImg=k=>(ZC.find(z=>z[0]==k)||[])[3]||null;
 const QUICK=['Rayado','Mancha','Golpe','Desconchado','Fisura','Ajustar','Bisagra','Silicona','Falta pieza','No funciona','Fuga','Limpiar','Repasar pintura','Cambiar pieza'];
 
 function zonesOf(u){
@@ -507,13 +509,9 @@ function go(h){location.hash=h?'#'+h:'';if(!h)render()}
 function dotsFor(list){const ids=[...new Set(list.filter(pend).map(r=>r.ind))];return `<span class="dots">${ids.map(i=>`<i style="background:${indOf(i).c}"></i>`).join('')}</span>`}
 function pinNums(uid){const l=of(r=>r.u==uid&&r.x!=null).sort((a,b)=>a.ts-b.ts);const m={};l.forEach((r,i)=>m[r.id]=i+1);return m}
 const ESTN={pendiente:'Pendiente',hecho:'Hecho',validado:'Validado'};
-const PK=[['S1','Sótano −1','Plazas 1–47 · T01–T46'],['S2','Sótano −2','Plazas 48–97 · T47–T92']];
-const pkName=l=>(PK.find(x=>x[0]==l)||[,''])[1];
-let pkL=(()=>{try{return localStorage.getItem('rp-pk')||'S1'}catch(e){return 'S1'}})();
-function setPk(l){pkL=l;try{localStorage.setItem('rp-pk',l)}catch(e){}render()}
-const hasPlan=r=>r.u!='ZC'||r.z=='parking';
-function plImg(r){return r.u=='ZC'?(r.z=='parking'&&r.pl?'planos/'+r.pl+'.jpg':null):'planos/'+r.u+'.jpg'}
-function pinNumsPk(pl){const l=of(r=>r.u=='ZC'&&r.z=='parking'&&r.pl==pl&&r.x!=null).sort((a,b)=>a.ts-b.ts);const m={};l.forEach((r,i)=>m[r.id]=i+1);return m}
+const hasPlan=r=>r.u!='ZC'||!!zcImg(r.z);
+function plImg(r){return r.u=='ZC'?(zcImg(r.z)?'planos/'+zcImg(r.z)+'.jpg':null):'planos/'+r.u+'.jpg'}
+function pinNumsZ(k){const l=of(r=>r.u=='ZC'&&r.z==k&&r.x!=null).sort((a,b)=>a.ts-b.ts);const m={};l.forEach((r,i)=>m[r.id]=i+1);return m}
 function zoneName(r){if(r.u=='ZC')return (ZC.find(z=>z[0]==r.z)||[,r.z])[1];const z=zonesOf(U[r.u]).find(z=>z.k==r.z);return z?z.n:r.z}
 
 /* ---------- desplegables de plantas ---------- */
@@ -567,18 +565,17 @@ async function buildPDF(o,prog){
     need(30);
     doc.setFillColor(...K);doc.rect(M,y,W-2*M,8,'F');doc.setFillColor(...A);doc.rect(M,y+8,W-2*M,.8,'F');
     doc.setTextColor(255);doc.setFontSize(10.5);doc.text(g.u?`Vivienda ${uName(g.u)}  ·  ${FLN[g.u.fl]}  ·  Tipología ${g.u.tip}`:`Zonas comunes  ·  ${g.zc}`,M+3,y+5.4);doc.setFontSize(8.5);doc.text(`${g.l.length} repaso${g.l.length>1?'s':''}`,W-M-3,y+5.4,{align:'right'});y+=13;
-    const pkg=g.k=='parking';const nums=g.u?pinNums(g.u.id):pkg?{...pinNumsPk('S1'),...pinNumsPk('S2')}:{};
+    const zimg=g.k?zcImg(g.k):null;const nums=g.u?pinNums(g.u.id):zimg?pinNumsZ(g.k):{};
     if(o.planos&&g.u&&g.l.some(r=>r.x!=null)){try{const p=await planPins(g.u,g.l);let w=W-2*M,h=w*p.h/p.w;if(h>110){h=110;w=h*p.w/p.h}need(h+4);doc.addImage(p.d,'JPEG',M+(W-2*M-w)/2,y,w,h);y+=h+5}catch(e){}}
-    if(o.planos&&pkg){for(const [L,LN] of PK){const pl=g.l.filter(r=>r.pl==L&&r.x!=null);if(!pl.length)continue;try{const p=await planPins(null,pl,'planos/'+L+'.jpg',pinNumsPk(L));let w=W-2*M,h=w*p.h/p.w;if(h>120){h=120;w=h*p.w/p.h}need(h+10);doc.setFontSize(7.5);doc.setTextColor(...G);doc.text(('Parking · '+LN).toUpperCase(),M,y);y+=2.5;doc.addImage(p.d,'JPEG',M+(W-2*M-w)/2,y,w,h);y+=h+5}catch(e){}}}
-    const pko=r=>pkg?(r.pl=='S2'?1:r.pl=='S1'?0:2):0;
-    const sorted=g.l.slice().sort((a,b)=>pko(a)-pko(b)||(nums[a.id]||999)-(nums[b.id]||999)||a.ts-b.ts);
+    if(o.planos&&zimg&&g.l.some(r=>r.x!=null)){try{const p=await planPins(null,g.l,'planos/'+zimg+'.jpg',nums);let w=W-2*M,h=w*p.h/p.w;if(h>120){h=120;w=h*p.w/p.h}need(h+4);doc.addImage(p.d,'JPEG',M+(W-2*M-w)/2,y,w,h);y+=h+5}catch(e){}}
+    const sorted=g.l.slice().sort((a,b)=>(nums[a.id]||999)-(nums[b.id]||999)||a.ts-b.ts);
     for(const r of sorted){
       const i=indOf(r.ind);const fotos=o.fotos?vis(r).slice(0,3):[];const tw=fotos.length?W-2*M-23-fotos.length*25:W-2*M-23;
       doc.setFontSize(9.5);const lines=doc.splitTextToSize(r.txt||'(sin descripción)',tw);
       const th=5+lines.length*4.2+5;const rh=Math.max(th,fotos.length?25:0,12)+3;need(rh);
       doc.setDrawColor(...K);doc.setLineWidth(.35);doc.rect(M,y,7,7);doc.setFontSize(5.5);doc.setTextColor(...G);doc.text('HECHO',M+3.5,y+9.6,{align:'center'});
       doc.setFillColor(...hex2rgb(i.c));doc.circle(M+13,y+3.5,3.2,'F');doc.setTextColor(255);doc.setFontSize(7.5);doc.text(String(nums[r.id]||'·'),M+13,y+4.6,{align:'center'});
-      const tx=M+20;CB.push({p:doc.getNumberOfPages(),id:r.id,box:[M,y,7,7],st:[tx,y+3.9,tw,lines.length*4.2],n:lines.length,done:r.estado!='pendiente'});doc.setTextColor(...G);doc.setFontSize(7.5);doc.text(`${zoneName(r)}${r.pl?' '+pkName(r.pl):''}  ·  ${r.cat}${r.loc?'  ·  '+r.loc:''}${(r.aud||[]).length?'  ·  nota de voz en la app':''}`.toUpperCase(),tx,y+2.5);
+      const tx=M+20;CB.push({p:doc.getNumberOfPages(),id:r.id,box:[M,y,7,7],st:[tx,y+3.9,tw,lines.length*4.2],n:lines.length,done:r.estado!='pendiente'});doc.setTextColor(...G);doc.setFontSize(7.5);doc.text(`${zoneName(r)}  ·  ${r.cat}${r.loc?'  ·  '+r.loc:''}${(r.aud||[]).length?'  ·  nota de voz en la app':''}`.toUpperCase(),tx,y+2.5);
       doc.setTextColor(...K);doc.setFontSize(9.5);doc.text(lines,tx,y+7.2);
       const my=y+7.2+lines.length*4.2;doc.setFontSize(7.5);doc.setTextColor(...G);doc.text(`${i.n}   ·   ${ESTN[r.estado]}   ·   ${uN(r.autor)||'—'}   ·   ${new Date(r.ts).toLocaleDateString('es-ES')}`,tx,my);
       if(r.estado!='pendiente'){doc.setTextColor(...(r.estado=='hecho'?A:K));doc.text(ESTN[r.estado].toUpperCase(),tx+tw,y+2.5,{align:'right'})}
@@ -839,7 +836,7 @@ function catBlock(list,cats,sel){
 }
 function repList(list,nums){
   list=list.slice().sort((a,b)=>(a.estado=='validado')-(b.estado=='validado')||b.ts-a.ts);
-  return list.map(r=>{const i=indOf(r.ind);return `<div class="rp" onclick="openRep('${r.id}')"><div class="ph">${vis(r)[0]?`<img src="${esc(phSrc(vis(r)[0]))}" data-f="${esc(vis(r)[0])}" alt="">`:'sin foto'}<i style="background:${i.c}">${nums&&nums[r.id]||''}</i></div><div class="tx">${esc(r.txt)||'<span style="color:var(--g3)">(sin descripción)</span>'}<small>${esc(r.cat)} · ${esc(i.n)}${r.autor?' · '+esc(uN(r.autor)):''}${r.pl?' · '+pkName(r.pl):''}${r.loc?' · '+esc(r.loc):''}${vis(r).length>1?' · '+vis(r).length+' fotos':''}${(r.aud||[]).length?' · 🎤 '+r.aud.length:''}${r._local?' · <b style="color:var(--a)">en el móvil</b>':''}</small></div><span class="st ${r.estado}">${ESTN[r.estado]}</span></div>`}).join('')||'<div class="empty">Sin repasos todavía</div>';
+  return list.map(r=>{const i=indOf(r.ind);return `<div class="rp" onclick="openRep('${r.id}')"><div class="ph">${vis(r)[0]?`<img src="${esc(phSrc(vis(r)[0]))}" data-f="${esc(vis(r)[0])}" alt="">`:'sin foto'}<i style="background:${i.c}">${nums&&nums[r.id]||''}</i></div><div class="tx">${esc(r.txt)||'<span style="color:var(--g3)">(sin descripción)</span>'}<small>${esc(r.cat)} · ${esc(i.n)}${r.autor?' · '+esc(uN(r.autor)):''}${r.loc?' · '+esc(r.loc):''}${vis(r).length>1?' · '+vis(r).length+' fotos':''}${(r.aud||[]).length?' · 🎤 '+r.aud.length:''}${r._local?' · <b style="color:var(--a)">en el móvil</b>':''}</small></div><span class="st ${r.estado}">${ESTN[r.estado]}</span></div>`}).join('')||'<div class="empty">Sin repasos todavía</div>';
 }
 let selCat=null, lastZone='';
 function vZona(uid,zk){
@@ -862,21 +859,21 @@ function vZC(k){
   const z=ZC.find(z=>z[0]==k);if(!z)return go('zonas');
   if(lastZone!='ZC'+k){selCat=null;lastZone='ZC'+k}
   const l=of(r=>r.u=='ZC'&&r.z==k);const shown=selCat?l.filter(r=>r.cat==selCat):l;
-  $('#app').innerHTML=`<div class="crumbs"><a onclick="go('')">Bloque 5</a>›<a onclick="go('zonas')">Zonas comunes</a>›<span>${z[1]}</span></div>
-  <h1>${z[1]}</h1><div class="sub">${z[2]} · ${l.filter(pend).length} pendientes</div>
-  ${k=='parking'?parkHTML(l):''}
-  ${catBlock(l,CATS[k],selCat)}
+  const img=zcImg(k);const nums=img?pinNumsZ(k):null;
+  const right=`${catBlock(l,CATS[k],selCat)}
   ${RO()?'':`<button class="add" onclick="newRep('ZC','${k}')">+ Nuevo repaso${selCat?' · '+esc(selCat):''}</button>`}
-  <div class="grp"><span>${selCat?esc(selCat):'Todos los repasos'}</span><span>${shown.length}</span></div>${repList(k=='parking'?shown.slice().sort((a,b)=>(a.pl==pkL?0:1)-(b.pl==pkL?0:1)):shown,k=='parking'?pinNumsPk(pkL):null)}`;
+  <div class="grp"><span>${selCat?esc(selCat):'Todos los repasos'}</span><span>${shown.length}</span></div>${repList(shown,nums)}`;
+  $('#app').innerHTML=`<div class="crumbs"><a onclick="go('')">Bloque 5</a>›<a onclick="go('zonas')">Zonas comunes</a>›<span>${z[1]}</span></div>
+  <div class="hrow"><div><h1>${z[1]}</h1><div class="sub">${z[2]} · ${l.filter(pend).length} pendientes</div></div><button class="btn o pdfb" onclick="openPdf({amb:'zc'})">PDF</button></div>
+  ${img?`<div class="vgrid"><div>${zcPlanHTML(k,l)}<p class="sub" style="margin-top:8px;font-size:12px">Toca un punto para ver el repaso. Al apuntar uno nuevo, marca en este plano dónde está.</p></div><div>${right}</div></div>`:right}`;
 }
-function parkHTML(l){
-  const nums=pinNumsPk(pkL);const pins=l.filter(r=>r.pl==pkL&&r.x!=null&&(filt=='all'||pend(r)));
-  return `<div class="pks">${PK.map(([L,n,d])=>`<button class="${pkL==L?'on':''}" onclick="setPk('${L}')">${n} · ${l.filter(r=>r.pl==L&&pend(r)).length}<small>${d}</small></button>`).join('')}</div>
-  <div class="pv"><div class="pvs" id="pvs"><div class="pi" style="width:${zoom*100}%"><img src="planos/${pkL}.jpg" alt="Plano ${pkName(pkL)}" draggable="false">
+function zcPlanHTML(k,l){
+  const img=zcImg(k);const nums=pinNumsZ(k);const pins=l.filter(r=>r.x!=null&&(filt=='all'||pend(r)));
+  return `<div class="pv"><div class="pvs" id="pvs"><div class="pi" style="width:${zoom*100}%"><img src="planos/${img}.jpg" alt="Plano" draggable="false">
    ${pins.map(r=>`<div class="pin ${r.estado}" style="left:${r.x}%;top:${r.y}%;background:${indOf(r.ind).c}" onclick="event.stopPropagation();openRep('${r.id}')">${nums[r.id]||''}</div>`).join('')}</div></div>
    <div class="pvbar"><div class="seg"><button class="${filt=='pend'?'on':''}" onclick="filt='pend';render()">Pendientes</button><button class="${filt=='all'?'on':''}" onclick="filt='all';render()">Todos</button></div>
    <div class="zb"><button onclick="zm(-1)">−</button><button onclick="zm(0)">${Math.round(zoom*100)}%</button><button onclick="zm(1)">+</button></div></div></div>
-  ${legend(l.filter(r=>r.pl==pkL))}`;
+  ${legend(l)}`;
 }
 function vIndustrial(id){
   const i=indOf(id);const l=of(r=>r.ind==id&&r.estado!='validado');
@@ -906,7 +903,7 @@ $('#ov').onclick=e=>{if(e.target.id=='ov')closeSheet()};
 function newRep(uid,zk){if(RO())return;
   const cats=uid=='ZC'?CATS[zk]:CATS[zonesOf(U[uid]).find(z=>z.k==zk).t];
   const c=cats.find(c=>c[0]==selCat)||cats[0];
-  F={u:uid,z:zk,cat:c[0],ind:c[1],txt:'',fotos:[],ocultas:[],aud:[],x:null,y:null,estado:'pendiente',loc:'',pl:uid=='ZC'&&zk=='parking'?pkL:null};drawForm(true);
+  F={u:uid,z:zk,cat:c[0],ind:c[1],txt:'',fotos:[],ocultas:[],aud:[],x:null,y:null,estado:'pendiente',loc:''};drawForm(true);
 }
 let ORIG=null;
 function openRep(id){const r=viewRec(id);if(!r)return;if(RO())return viewRO(r);F=JSON.parse(JSON.stringify(r));F.fotos=vis(r);F.ocultas=[];F.aud=F.aud||[];ORIG=JSON.parse(JSON.stringify(r));drawForm(false)}
@@ -922,8 +919,8 @@ function drawForm(isNew){
    <div class="auds" id="auds">${audHTML(true)}</div>
    <div class="chips">${SRok()?`<button class="chip" id="dictB" onclick="dict()">Dictar a texto</button>`:''}${QUICK.map(q=>`<button class="chip" onclick="addQ('${q}')">${q}</button>`).join('')}</div></div>
   <div class="fld"><span class="lbl">Fotografías</span><div class="photos" id="phs">${phHTML()}</div></div>
-  ${r.u=='ZC'?`<div class="fld"><span class="lbl">Ubicación</span><input class="loc" id="loc" placeholder="${r.z=='parking'?'Ej.: plaza 23 · trastero T12':'Ej.: rellano planta 3'}" value="${esc(r.loc)}"></div>`:''}
-  ${hasPlan(r)?`<div class="fld"><span class="lbl">Punto en el plano${r.u=='ZC'?' · '+pkName(r.pl||pkL):''}</span><div class="pinrow" onclick="F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}pinMode(${isNew})"><span>${r.x!=null?'Punto marcado ✓':'Marcar dónde está'}</span><span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:${indOf(r.ind).c}"></span>›</span></div></div>`:''}
+  ${r.u=='ZC'?`<div class="fld"><span class="lbl">Ubicación</span><input class="loc" id="loc" placeholder="${/^parking/.test(r.z)?'Ej.: plaza 23 · trastero T12':r.z=='cubierta'?'Ej.: junto al trastero T15':'Ej.: rellano planta 3'}" value="${esc(r.loc)}"></div>`:''}
+  ${hasPlan(r)?`<div class="fld"><span class="lbl">Punto en el plano</span><div class="pinrow" onclick="F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}pinMode(${isNew})"><span>${r.x!=null?'Punto marcado ✓':'Marcar dónde está'}</span><span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:${indOf(r.ind).c}"></span>›</span></div></div>`:''}
   <div class="fld"><span class="lbl">Industrial</span><div class="chips">${IND.map(i=>`<button class="chip ${r.ind==i.id?'on':''}" onclick="F.ind='${i.id}';F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}drawForm(${isNew})"><i style="background:${i.c}"></i>${esc(i.n)}</button>`).join('')}</div></div>
   ${isNew?'':`<div class="fld"><span class="lbl">Estado</span><div class="chips">${Object.keys(ESTN).map(e=>`<button class="chip ${r.estado==e?'on':''}" onclick="F.estado='${e}';F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}drawForm(false)">${ESTN[e]}</button>`).join('')}</div></div>`}
   <div class="btns"><button class="btn" onclick="submitRep()">${isNew?'Guardar repaso':'Guardar cambios'}</button><button class="btn o" onclick="closeSheet()">Cancelar</button>${isNew?'':`<button class="btn d" onclick="if(window._dc){eliminarRep(F.id)}else{window._dc=1;this.textContent='¿Eliminar? Toca otra vez';this.classList.add('danger')}">Eliminar</button>`}</div>
@@ -1059,7 +1056,7 @@ function viewRO(r){
    <div class="fld"><span class="lbl">Industrial</span><p style="margin-top:6px;display:flex;gap:8px;align-items:center"><span style="width:12px;height:12px;border-radius:50%;background:${i.c}"></span>${esc(i.n)}</p></div>
    ${f.length?`<div class="fld"><span class="lbl">Fotografías · ${f.length}</span><div class="photos">${f.map(p=>`<div class="p"><img src="${esc(phSrc(p))}" data-f="${esc(p)}" onclick="lb(this.src)" alt=""></div>`).join('')}</div></div>`:''}
    ${(r.aud||[]).length?`<div class="fld"><span class="lbl">Notas de voz</span><div class="auds">${audListRO(r.aud)}</div></div>`:''}
-   ${plImg(r)&&r.x!=null?`<div class="fld"><span class="lbl">Situación en plano${r.pl?' · '+pkName(r.pl):''}</span><div class="pv" style="margin-top:6px"><div class="pvs" style="max-height:46vh"><div class="pi"><img src="${plImg(r)}" alt=""><div class="pin ${r.estado}" style="left:${r.x}%;top:${r.y}%;background:${i.c}"></div></div></div></div></div>`:''}
+   ${plImg(r)&&r.x!=null?`<div class="fld"><span class="lbl">Situación en plano</span><div class="pv" style="margin-top:6px"><div class="pvs" style="max-height:46vh"><div class="pi"><img src="${plImg(r)}" alt=""><div class="pin ${r.estado}" style="left:${r.x}%;top:${r.y}%;background:${i.c}"></div></div></div></div></div>`:''}
    <div class="fld"><span class="lbl">Seguimiento</span><p class="sub" style="font-size:12.5px;margin-top:6px;line-height:1.7">Apuntado por <b>${esc(uN(r.autor)||'—')}</b> el ${new Date(r.ts).toLocaleString('es-ES')}${r.tHecho?`<br>Hecho el ${new Date(r.tHecho).toLocaleString('es-ES')} (${fmtD((r.tHecho-r.ts)/DAY)} desde que se apuntó)`:''}${r.tValid?`<br>Validado el ${new Date(r.tValid).toLocaleString('es-ES')}`:''}${r.rech?`<br>Devuelto ${r.rech} vez${r.rech>1?'es':''} al industrial`:''}${r.mod?`<br>Último cambio de ${esc(uN(r.modAut)||'—')} el ${new Date(r.mod).toLocaleString('es-ES')}`:''}</p></div>
    <div class="btns"><button class="btn o" onclick="closeSheet()">Cerrar</button></div>`);
 }
@@ -1079,11 +1076,11 @@ async function eliminarRep(id){
 /* marcar en plano */
 let pinZoom=1;
 function pinMode(isNew){
-  const zc=F.u=='ZC';const u=zc?null:U[F.u];if(zc&&!F.pl)F.pl=pkL;$('#ov').classList.remove('on');if(REC)stopRec(true);
+  const zc=F.u=='ZC';const u=zc?null:U[F.u];$('#ov').classList.remove('on');if(REC)stopRec(true);
   const draw=()=>{
-    const others=zc?of(r=>r.u=='ZC'&&r.z=='parking'&&r.pl==F.pl&&r.x!=null&&r.id!=F.id&&pend(r)):of(r=>r.u==u.id&&r.x!=null&&r.id!=F.id&&pend(r));
-    $('#full').innerHTML=`<div class="top"><div><span class="lbl">${zc?'Parking · '+pkName(F.pl):'Vivienda '+uName(u)+' · '+esc(zoneName(F))}</span><div style="font-size:15px">Toca el plano donde está el repaso</div></div>${zc?`<div class="seg">${PK.map(([L,n])=>`<button class="${F.pl==L?'on':''}" onclick="if(F.pl!='${L}'){F.pl='${L}';F.x=null;F.y=null;_pd()}">${n}</button>`).join('')}</div>`:''}<div class="zb"><button onclick="pinZoom=Math.max(1,pinZoom-.5);_pd()">−</button><button onclick="pinZoom=Math.min(4,pinZoom+.5);_pd()">+</button></div></div>
-    <div class="pvs" id="pms"><div class="pi" id="pmi" style="width:${pinZoom*100}%"><img src="${zc?'planos/'+F.pl+'.jpg':'planos/'+u.id+'.jpg'}" draggable="false" alt="">
+    const others=zc?of(r=>r.u=='ZC'&&r.z==F.z&&r.x!=null&&r.id!=F.id&&pend(r)):of(r=>r.u==u.id&&r.x!=null&&r.id!=F.id&&pend(r));
+    $('#full').innerHTML=`<div class="top"><div><span class="lbl">${zc?'Zonas comunes · '+esc(zoneName(F)):'Vivienda '+uName(u)+' · '+esc(zoneName(F))}</span><div style="font-size:15px">Toca el plano donde está el repaso</div></div><div class="zb"><button onclick="pinZoom=Math.max(1,pinZoom-.5);_pd()">−</button><button onclick="pinZoom=Math.min(4,pinZoom+.5);_pd()">+</button></div></div>
+    <div class="pvs" id="pms"><div class="pi" id="pmi" style="width:${pinZoom*100}%"><img src="${zc?'planos/'+zcImg(F.z)+'.jpg':'planos/'+u.id+'.jpg'}" draggable="false" alt="">
      ${others.map(r=>`<div class="pin" style="left:${r.x}%;top:${r.y}%;background:${indOf(r.ind).c};opacity:.45;pointer-events:none"></div>`).join('')}
      ${F.x!=null?`<div class="pin tmp" style="left:${F.x}%;top:${F.y}%;background:${indOf(F.ind).c}"></div>`:''}</div></div>
     <div class="top" style="border-top:1px solid var(--k);border-bottom:0"><button class="btn o" onclick="F.x=null;F.y=null;_pd()">Quitar punto</button><button class="btn" onclick="$('#full').classList.remove('on');drawForm(${isNew})">Confirmar</button></div>`;
