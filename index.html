@@ -452,11 +452,11 @@ const IND0=[
  ['coc','Bodelec','Cocinas · mobiliario','#8c5a3c'],['enc','Copedra','Encimeras Silestone','#7b4fa0'],['ele','Euroelectra','Electrodomésticos','#2f6db5'],
  ['fon','Euroelectra','Fontanería','#1aa0c8'],['elc','Euroelectra','Electricidad','#e2a400'],['pin','Fede','Pintura','#d9467c'],
  ['car','Hispablock','Carpintería madera','#a87b3c'],['alu','Aluminis Granollers','Aluminio y vidrio','#3fa8a0'],['ali','Alex Ortega','Alicatado y pavimento','#d1662a'],
- ['ple','Divinter','Pladur y yeso','#8f8f8f'],['cli','Euroelectra','Climatización','#3f9a5b'],['cer','Escudero','Cerrajería','#555e6b'],
+ ['ple','Divinter','Pladur y yeso','#8f8f8f'],['cli','Euroelectra','Climatización','#3f9a5b'],['cer','Escuredo','Cerrajería','#555e6b'],
  ['lim','','Limpieza','#86b7dd'],['jar','','Jardinería','#7cb342'],['imp','Imperfexa','Impermeabilización','#2e4a6b'],['tam','Tamiluz','Celosías','#5c6bc0'],['vtw','Ventiworks','Ventilación forzada y cocinas','#ef6c57'],['mtv','Montivent','Ventilación parking','#c0ca33'],['sat','Freddy','Fachada SATE y monocapa','#a1887f'],['par','Parketsol','Parquet y tarima','#6d4c41'],['san','Normaplast','Saneamiento','#00838f'],['con','Euroconstruc','Constructora · otros','#1a1a1a']
 ];
 const slugOf=e=>(e||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-const MAIL0={bodelec:'Noemi Manzanares <noemi@bodelec.es>',copedra:'Copedra, S.L. <comercial@copedra.com>',euroelectra:'Digno Ruiz Selva <digno@euroelectra.com>',fede:'Federico López Matamoros <fttpintores@hotmail.com>',hispablock:'Jordi González <jgonzalez@hispablock.com>','aluminis-granollers':'Abel Llaneza <allaneza@aluminisgranollers.com>','alex-ortega':'Alex Ortega <alexortega_434@hotmail.com>',divinter:'Nazar Voloschuki <nazar@divinter.es>',ventiworks:'Nuria VentiWorks <nuria@ventiworks.com>',freddy:'Project Freddy <info@projectfreddy.com>',parketsol:'Jesús <parketsol_urgel@yahoo.es>',normaplast:'Lidia Martínez <instal.lacions@normaplast.net>'};
+const MAIL0={bodelec:'Noemi Manzanares <noemi@bodelec.es>',copedra:'Copedra, S.L. <comercial@copedra.com>',euroelectra:'Digno Ruiz Selva <digno@euroelectra.com>',fede:'Federico López Matamoros <fttpintores@hotmail.com>',hispablock:'Jordi González <jgonzalez@hispablock.com>','aluminis-granollers':'Abel Llaneza <allaneza@aluminisgranollers.com>','alex-ortega':'Alex Ortega <alexortega_434@hotmail.com>',divinter:'Nazar Voloschuki <nazar@divinter.es>',ventiworks:'Nuria VentiWorks <nuria@ventiworks.com>',freddy:'Project Freddy <info@projectfreddy.com>',parketsol:'Jesús <parketsol_urgel@yahoo.es>',normaplast:'Lidia Martínez <instal.lacions@normaplast.net>',escuredo:'Manuel Escuredo <manuelescuredo@grupoescuredo.es>',imperfexa:'Xavier Ruiz <xaviruiz@imperfexa.com>',tamiluz:'Javier Magriña <javier.magrinya@tamiluz.es>',montivent:'Montivent <montivent@montivent.com>'};
 const EMRX=/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/gi;
 const emailsOf=m=>[...new Set(((m||'').match(EMRX)||[]).map(x=>x.toLowerCase()))];
 let IND=IND0.map(([id,e,g,c])=>({id,e,g,c,m:MAIL0[slugOf(e)]||'',get n(){return this.e?this.e+' · '+this.g:this.g}}));
@@ -538,7 +538,7 @@ async function doChangePW(){const a=$('#cp1').value;if(a.length<4)return $('#cpm
 /* ---------- datos: Firestore (con caché local) + diario local de seguridad ---------- */
 let SERVER={},PENDREC=new Set(),HIST=[],FOTO={},UPL=new Set(),JN={},FROMCACHE=true,online=navigator.onLine,UNSUB=[];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-function mergeInd(list){list.forEach(x=>{const i=IND.find(i=>i.id==x.id);if(i&&typeof x.e=='string'){i.e=x.e}if(i&&typeof x.m=='string'&&(x.m||x.mset)){i.m=x.m}})}
+function mergeInd(list){list.forEach(x=>{const i=IND.find(i=>i.id==x.id);if(i&&typeof x.e=='string'){i.e=x.e=='Escudero'?'Escuredo':x.e=='Hispabloc'?'Hispablock':x.e}if(i&&typeof x.m=='string'&&(x.m||x.mset)){i.m=x.m}})}
 let IDB=null;
 function idbOpen(){return new Promise(res=>{try{const r=indexedDB.open('repasos-b5-pwa',1);r.onupgradeneeded=()=>{const d=r.result;['journal','fotos','cache'].forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'})})};r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);r.onblocked=()=>res(null)}catch(e){res(null)}})}
 function idb(store,mode,fn){return new Promise((res,rej)=>{if(!IDB)return rej(new Error('noidb'));try{const t=IDB.transaction(store,mode);const q=fn(t.objectStore(store));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)}catch(e){rej(e)}})}
@@ -1032,7 +1032,7 @@ function vHome(){
   document.querySelectorAll('[data-mail]').forEach(inp=>inp.onchange=()=>{const v=inp.value.trim();const parts=v.split(/[,;]+/).map(x=>x.trim()).filter(Boolean);if(parts.some(x=>emailsOf(x).length!=1)){toast('Revisa los emails: sepáralos con comas');return}const me=indOf(inp.dataset.mail);IND.filter(i=>i.e&&i.e==me.e).forEach(i=>i.m=parts.join(', '));if(!me.e)me.m=parts.join(', ');saveInd();toast(parts.length?(parts.length>1?parts.length+' emails guardados':'Email guardado'):'Email borrado');render()});
 }
 
-let zoom=1, filt='pend';
+let zoom=1, filt='all';
 function planHTML(u,opts={}){
   const nums=pinNums(u.id);
   const pins=of(r=>r.u==u.id&&r.x!=null&&(filt=='all'||pend(r))&&(!opts.zone||r.z==opts.zone));
@@ -1043,6 +1043,7 @@ function planHTML(u,opts={}){
    ${pins.map(r=>`<div class="pin ${r.estado}" style="left:${r.x}%;top:${r.y}%;background:${indOf(r.ind).c}" onclick="event.stopPropagation();openRep('${r.id}')">${nums[r.id]||''}</div>`).join('')}
   </div>`;
 }
+function sinPunto(l){const n=l.filter(r=>r.x==null).length;return n?`<p class="sub" style="margin-top:6px;font-size:12px">${n} repaso${n>1?'s':''} sin punto marcado en el plano: ábrelo y pulsa «Marcar dónde está».</p>`:''}
 function legend(list){const ids=[...new Set(list.map(r=>r.ind))];return ids.length?`<div class="legend">${ids.map(i=>`<span><i style="background:${indOf(i).c}"></i>${esc(indOf(i).n)} · ${list.filter(r=>r.ind==i&&pend(r)).length}</span>`).join('')}</div>`:''}
 function vVivienda(id){
   const u=U[id];if(!u)return go('');
@@ -1054,7 +1055,7 @@ function vVivienda(id){
    <div class="pv"><div class="pvs" id="pvs">${planHTML(u)}</div>
    <div class="pvbar"><div class="seg"><button class="${filt=='pend'?'on':''}" onclick="filt='pend';render()">Pendientes</button><button class="${filt=='all'?'on':''}" onclick="filt='all';render()">Todos</button></div>
    <div class="zb"><button onclick="zm(-1)">−</button><button onclick="zm(0)">${Math.round(zoom*100)}%</button><button onclick="zm(1)">+</button></div></div></div>
-   ${legend(l)}
+   ${legend(l)}${sinPunto(l)}
    <p class="sub" style="margin-top:8px;font-size:12px">Toca una estancia del plano para entrar, o un punto para ver el repaso.</p>
   </div><div>
    <div class="meta"><div><span class="lbl">Útil interior</span><p>${u.ui} m²</p></div><div><span class="lbl">Exterior</span><p>${u.ue} m²</p></div><div><span class="lbl">Pendientes</span><p>${l.filter(pend).length} / ${l.length}</p></div></div>
@@ -1085,7 +1086,11 @@ function vZona(uid,zk){
   ${RO()?'':`<button class="add" onclick="newRep('${uid}','${zk}')">+ Nuevo repaso${selCat?' · '+esc(selCat):''}</button>`}
   <div class="grp"><span>${selCat?esc(selCat):'Todos los repasos'}</span><span>${shown.length}</span></div>
   ${repList(shown,nums)}
-  ${z.x!=null?`<div class="grp"><span>Situación en plano</span></div><div class="pv" style="margin-top:8px"><div class="pvs">${planHTML(u,{zone:zk,tags:false})}</div></div>`:''}`;
+  <div class="grp"><span>Situación en plano · ${z.n}</span><span>${l.filter(r=>r.x!=null).length} punto${l.filter(r=>r.x!=null).length==1?'':'s'}</span></div>
+  <div class="pv" style="margin-top:8px"><div class="pvs">${planHTML(u,{zone:zk,tags:false})}</div>
+   <div class="pvbar"><div class="seg"><button class="${filt=='pend'?'on':''}" onclick="filt='pend';render()">Pendientes</button><button class="${filt=='all'?'on':''}" onclick="filt='all';render()">Todos</button></div>
+   <div class="zb"><button onclick="zm(-1)">−</button><button onclick="zm(0)">${Math.round(zoom*100)}%</button><button onclick="zm(1)">+</button></div></div></div>
+  ${legend(l)}${sinPunto(l)}`;
   $('#app').innerHTML=h;
 }
 function vZC(k){
@@ -1363,22 +1368,169 @@ applyTheme();
 
 /* ayuda / tutorial */
 const HELP=[
- {"img":"01_acceso","t":"Entra con tu nombre","p":["Elige tu usuario.","La primera vez pulsa «Es mi primera vez» y crea tu contraseña (mínimo 4 caracteres). Después la app te recuerda."]},
- {"img":"02_inicio","t":"Elige planta y vivienda","p":["Toca una planta para desplegarla: verás las viviendas y cuántos repasos pendientes tiene cada una.","Toca la vivienda en la lista o directamente en el plano de la planta.","Botón PDF: informe de todo el bloque."]},
- {"img":"03_vivienda","t":"El plano de la vivienda","p":["Toca una estancia del plano (Cocina, Baño, Dormitorio…) para entrar en ella.","Cada punto de color es un repaso. El color indica el industrial y el número, el orden.","Debajo tienes todas las estancias con sus pendientes, más Terraza y Generales."]},
- {"img":"04_estancia","t":"Dentro de cada estancia","p":["Elige el elemento: muebles, encimera, electrodomésticos, grifería…","Pulsa «+ Nuevo repaso» para apuntar un desperfecto.","Toca cualquier repaso de la lista para verlo o cambiarlo."]},
- {"img":"05_nuevo","t":"Apunta el repaso","p":["Elige el elemento afectado.","Escribe el fallo o usa las palabras rápidas (Rayado, Mancha, Bisagra…).","Micro: mantén pulsado y suelta para guardar una nota de voz, o tócalo una vez para empezar y otra para terminar. Para escribir hablando, usa el micro del teclado.","Añade una o varias fotos.","Marca el punto exacto en el plano. El industrial se asigna solo y puedes cambiarlo."]},
- {"img":"06_punto","t":"Marca dónde está","p":["Toca el plano en el lugar del desperfecto: aparece el punto con el color del industrial.","Pulsa «Confirmar» y luego «Guardar repaso»."]},
- {"img":"07_estado","t":"Hecho, validado o eliminado","p":["Cambia el estado: Pendiente → Hecho (el industrial lo ha reparado) → Validado (revisado y correcto).","«Eliminar» borra un repaso apuntado por error (toca dos veces para confirmar)."]},
- {"img":"08_progreso","t":"Progreso de la obra","p":["Porcentaje validado, resuelto por los industriales y total de repasos.","Industriales ordenados por cómo responden: % resuelto, tiempo medio y repaso más antiguo."]},
- {"img":"09_pdf","t":"PDF por vivienda, planta o industrial","p":["Elige el ámbito: vivienda, planta, zonas comunes o el bloque completo, y un industrial o todos.","«Descargar PDF» genera el informe con planos, puntos y fotos.","«Preparar email»: escribe o toca el email del industrial y se abre tu correo con el PDF adjunto."]},
- {"img":"14_pdf_casilla","t":"El industrial tacha lo que ha hecho","p":["Cada repaso del PDF tiene una casilla HECHO. Al marcarla, la casilla y el texto quedan tachados.","Funciona con Adobe Acrobat Reader (gratis), con Archivos en iPad/iPhone y en el navegador. Después hay que guardar el PDF."]},
- {"img":"10_industriales","t":"Industriales","p":["Nombre de la empresa y email de cada gremio, para enviarle los PDF.","«Ver lista»: todos sus repasos pendientes y «Copiar lista para WhatsApp»."]},
- {"img":"11_cobertura","t":"Sin cobertura no se pierde nada","p":["Arriba ves el estado: «sincronizado» o «sin cobertura · X en el dispositivo». Todo se guarda en el dispositivo y se sube solo al volver la señal.","Botón «Inicio»: vuelve a la página principal desde cualquier pantalla.","Botón luna/sol: modo oscuro o claro."]},
- {"img":"12_oscuro","t":"Modo oscuro","p":["Pulsa la luna para trabajar en modo oscuro y el sol para volver al claro. Cada dispositivo lo recuerda."]},
- {"img":"13_instalar","t":"Instálala en el iPad","p":["Abre la web en Safari, pulsa Compartir (cuadrado con flecha) → «Añadir a pantalla de inicio».","Queda con su icono, se abre a pantalla completa y funciona sin cobertura."]}
-]
-;let HI=0;
+ {
+  "img": "01_acceso",
+  "t": "Entra con tu nombre",
+  "p": [
+   "Equipo (Jaime, Antonio, Sergi) y Mónica: elige tu nombre. La primera vez pulsa «Es mi primera vez» y crea tu contraseña; después la app te recuerda.",
+   "Industriales: pulsa «Industriales» y elige tu empresa (ver paso 15)."
+  ]
+ },
+ {
+  "img": "02_inicio",
+  "t": "Inicio: estado general de la obra",
+  "p": [
+   "Estado general: % resuelto y pendientes, hechos y validados. Abajo, lo apuntado y resuelto en la semana y el tiempo medio de resolución.",
+   "Cifras con su evolución de las últimas dos semanas.",
+   "Evolución de 21 días: repasos apuntados frente a resueltos. Al lado, industriales con más pendientes; debajo, por planta y la actividad reciente.",
+   "Barra lateral: Inicio, Viviendas, Zonas comunes, Progreso, Industriales y Registro. En iPad vertical va arriba."
+  ]
+ },
+ {
+  "img": "03_viviendas",
+  "t": "Elige planta y vivienda",
+  "p": [
+   "Viviendas, en la barra, con el total de pendientes.",
+   "Toca una planta para desplegarla: viviendas y pendientes de cada una.",
+   "Toca la vivienda en la lista o directamente en el plano de la planta."
+  ]
+ },
+ {
+  "img": "04_vivienda",
+  "t": "El plano de la vivienda",
+  "p": [
+   "Toca una estancia del plano (Cocina, Baño, Dormitorio…) para entrar.",
+   "Cada punto es un repaso: el color indica el industrial y el número, el orden. Se ven todos los repasos con punto marcado.",
+   "Todas las estancias con sus pendientes, más Terraza y Generales.",
+   "«Todos» o «Pendientes» para mostrar u ocultar los validados."
+  ]
+ },
+ {
+  "img": "05_estancia",
+  "t": "Dentro de cada estancia",
+  "p": [
+   "Elige el elemento: muebles, encimera, electrodomésticos, grifería…",
+   "«+ Nuevo repaso» para apuntar un desperfecto.",
+   "Toca un repaso de la lista para verlo o cambiarlo."
+  ]
+ },
+ {
+  "img": "05b_estancia_plano",
+  "t": "El plano de cada estancia",
+  "p": [
+   "Al final de la estancia, su plano con los puntos de sus repasos. Toca un punto para abrirlo.",
+   "«Todos» o «Pendientes». Si un repaso no tiene punto, la app lo avisa debajo del plano."
+  ]
+ },
+ {
+  "img": "06_nuevo",
+  "t": "Apunta el repaso",
+  "p": [
+   "Elige el elemento afectado.",
+   "Escribe el fallo o usa las palabras rápidas (Rayado, Mancha, Bisagra…).",
+   "Micro: mantén pulsado y suelta para guardar una nota de voz, o tócalo una vez para empezar y otra para terminar.",
+   "Añade una o varias fotos.",
+   "Marca el punto exacto en el plano. El industrial se asigna solo y puedes cambiarlo."
+  ]
+ },
+ {
+  "img": "07_punto",
+  "t": "Marca dónde está",
+  "p": [
+   "Toca el plano en el lugar del desperfecto: aparece el punto con el color del industrial.",
+   "Pulsa «Confirmar» y luego «Guardar repaso»."
+  ]
+ },
+ {
+  "img": "08_estado",
+  "t": "Estado, fechas y eliminar",
+  "p": [
+   "Pendiente → Hecho (reparado) → Validado (revisado y correcto).",
+   "Fechas: creado (cuándo y por quién), hecho y validado, con los días transcurridos.",
+   "«Eliminar» borra un repaso apuntado por error (toca dos veces para confirmar)."
+  ]
+ },
+ {
+  "img": "09_parking",
+  "t": "Zonas comunes y parking",
+  "p": [
+   "Zonas comunes: Parking, Vestíbulos, Pasillos, Escaleras, Planta Baja Patio y Cubierta.",
+   "Parking: elige Planta −2 o Planta −1.",
+   "Cada zona con plano (parking, patio, cubierta) funciona como una vivienda: marca y toca los puntos."
+  ]
+ },
+ {
+  "img": "10_progreso",
+  "t": "Progreso de la obra",
+  "p": [
+   "Porcentaje validado, resuelto por los industriales y total de repasos.",
+   "Industriales ordenados por cómo responden: % resuelto, tiempo medio y repaso más antiguo."
+  ]
+ },
+ {
+  "img": "11_pdf",
+  "t": "PDF y envío al industrial",
+  "p": [
+   "Elige el industrial: va por empresa, con todos sus oficios (Euroelectra incluye electrodomésticos, fontanería, electricidad y climatización).",
+   "Sus emails se ponen solos. Puedes añadir otros tocando las empresas.",
+   "«Email con PDF»: abre Mail con el PDF adjunto y asunto «EUROCONSTRUC Viladecans Repasos» (los destinatarios quedan copiados para pegarlos). «Email sin adjunto» abre el correo ya dirigido con la lista y el enlace a la app.",
+   "«WhatsApp»: comparte el PDF y elige el contacto."
+  ]
+ },
+ {
+  "img": "12_pdf_casilla",
+  "t": "El industrial tacha lo que ha hecho",
+  "p": [
+   "Cada repaso del PDF tiene una casilla HECHO. Al marcarla, la casilla y el texto quedan tachados.",
+   "Funciona con Adobe Acrobat Reader (gratis), con Archivos en iPad/iPhone y en el navegador. Después hay que guardar el PDF."
+  ]
+ },
+ {
+  "img": "13_industriales",
+  "t": "Industriales y sus emails",
+  "p": [
+   "Nombre de la empresa y emails. Puedes poner varios separados por comas; se aplican a todos los oficios de la empresa.",
+   "«Acceso: Industriales › empresa»: así entra cada industrial a la app."
+  ]
+ },
+ {
+  "img": "14_acceso_ind",
+  "t": "Acceso para industriales",
+  "p": [
+   "El industrial pulsa «Industriales», elige su empresa y la primera vez crea su contraseña («Es mi primera vez»)."
+  ]
+ },
+ {
+  "img": "15_vista_ind",
+  "t": "Lo que ve el industrial",
+  "p": [
+   "Solo sus repasos: pendientes, resueltos y total.",
+   "Filtra Pendientes, Resueltos o Todos. Tocando un repaso ve fotos, plano, notas de voz y fechas.",
+   "«✓ Resuelto» marca el repaso como hecho; la constructora lo revisa y valida. No puede crear, editar ni validar."
+  ]
+ },
+ {
+  "img": "16_cobertura",
+  "t": "Sin cobertura no se pierde nada",
+  "p": [
+   "Arriba ves el estado: «sincronizado» o «sin cobertura · X en el dispositivo». Todo se guarda en el dispositivo y se sube solo al volver la señal. La app se actualiza sola cuando hay conexión."
+  ]
+ },
+ {
+  "img": "17_oscuro",
+  "t": "Modo oscuro",
+  "p": [
+   "Pulsa la luna para trabajar en modo oscuro y el sol para volver al claro. Cada dispositivo lo recuerda."
+  ]
+ },
+ {
+  "img": "18_instalar",
+  "t": "Instálala en el iPad",
+  "p": [
+   "Abre la web en Safari, pulsa Compartir (cuadrado con flecha) → «Añadir a pantalla de inicio». Queda con su icono, se abre a pantalla completa y funciona sin cobertura."
+  ]
+ }
+];let HI=0;
 function openHelp(i){HI=i||0;drawHelp();$('#help').classList.add('on');document.body.classList.add('helpon')}
 function closeHelp(){$('#help').classList.remove('on');document.body.classList.remove('helpon')}
 function helpGo(d){HI=Math.max(0,Math.min(HELP.length-1,HI+d));drawHelp()}
