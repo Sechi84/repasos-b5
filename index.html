@@ -369,7 +369,7 @@ const CATS={
 const ZC=[['parking2','Parking planta −2','Plazas 48–97 · trasteros T47–T92','S2'],['parking1','Parking planta −1','Plazas 1–47 · trasteros T01–T46','S1'],['vestibulos','Vestíbulos','Entrada y rellanos'],['pasillos','Pasillos','Por planta'],['escaleras','Escaleras','Núcleo vertical'],['jardin','Planta Baja Patio','Patio y zonas verdes PB','PBP'],['cubierta','Cubierta','Terrado e instalaciones','CUB']];
 CATS.parking1=CATS.parking2=CATS.parking;
 const ZCG=[['parking','Parking','Plantas −2 y −1'],...ZC.filter(z=>!/^parking/.test(z[0]))];
-const pkLast=()=>{try{return localStorage.getItem('rp-pk')||'parking2'}catch(e){return 'parking2'}};
+const pkLast=()=>{let v=null;try{v=localStorage.getItem('rp-pkz')}catch(e){}return v=='parking1'||v=='parking2'?v:'parking2'};
 const zcImg=k=>(ZC.find(z=>z[0]==k)||[])[3]||null;
 const QUICK=['Rayado','Mancha','Golpe','Desconchado','Fisura','Ajustar','Bisagra','Silicona','Falta pieza','No funciona','Fuga','Limpiar','Repasar pintura','Cambiar pieza'];
 
@@ -874,6 +874,7 @@ function vZona(uid,zk){
   $('#app').innerHTML=h;
 }
 function vZC(k){
+  const alias={parking:pkLast(),S2:'parking2',S1:'parking1'};if(alias[k]){location.replace('#c-'+alias[k]);return}
   const z=ZC.find(z=>z[0]==k);if(!z)return go('zonas');
   if(lastZone!='ZC'+k){selCat=null;lastZone='ZC'+k}
   const l=of(r=>r.u=='ZC'&&r.z==k);const shown=selCat?l.filter(r=>r.cat==selCat):l;
@@ -881,7 +882,7 @@ function vZC(k){
   const right=`${catBlock(l,CATS[k],selCat)}
   ${RO()?'':`<button class="add" onclick="newRep('ZC','${k}')">+ Nuevo repaso${selCat?' · '+esc(selCat):''}</button>`}
   <div class="grp"><span>${selCat?esc(selCat):'Todos los repasos'}</span><span>${shown.length}</span></div>${repList(shown,nums)}`;
-  const pk=/^parking/.test(k);if(pk){try{localStorage.setItem('rp-pk',k)}catch(e){}}
+  const pk=/^parking/.test(k);if(pk){try{localStorage.setItem('rp-pkz',k);localStorage.removeItem('rp-pk')}catch(e){}}
   const pkTabs=pk?`<div class="pks">${[['parking2','Planta −2'],['parking1','Planta −1']].map(([kk,nn])=>{const zz=ZC.find(x=>x[0]==kk);return `<button class="${kk==k?'on':''}" onclick="go('c-${kk}')">${nn} · ${of(r=>r.u=='ZC'&&r.z==kk&&pend(r)).length}<small>${zz[2]}</small></button>`}).join('')}</div>`:'';
   $('#app').innerHTML=`<div class="crumbs"><a onclick="go('')">Bloque 5</a>›<a onclick="go('zonas')">Zonas comunes</a>›${pk?`<a onclick="go('c-${k}')">Parking</a>›<span>${k=='parking2'?'Planta −2':'Planta −1'}</span>`:`<span>${z[1]}</span>`}</div>
   <div class="hrow"><div><h1>${pk?'Parking':z[1]}</h1><div class="sub">${pk?(k=='parking2'?'Planta −2':'Planta −1')+' · ':''}${z[2]} · ${l.filter(pend).length} pendientes</div></div><button class="btn o pdfb" onclick="openPdf({amb:'zc'})">PDF</button></div>
