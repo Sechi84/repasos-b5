@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Repasos Viladecans</title>
 <meta name="theme-color" content="#1a1a1a"><link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="apple-touch-icon" sizes="152x152" href="icon-152.png"><link rel="apple-touch-icon" sizes="167x167" href="icon-167.png"><link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Repasos Viladecans">
 <script src="config.js"></script><script src="fb.js"></script>
 <link href="inter.css" rel="stylesheet">
@@ -242,6 +242,21 @@ body.locked{overflow:hidden}
 .ind input.im{font-size:12.5px;color:var(--g1);margin-top:4px;border-bottom:1px dashed var(--g4)}
 .ind input.im:placeholder-shown{color:var(--g3)}
 .steps{margin:12px 0 8px 18px;font-size:14px;line-height:1.7;color:var(--g1)}
+
+/* boton inicio */
+#homeBtn{position:fixed;right:calc(16px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));z-index:45;display:none;align-items:center;gap:8px;background:var(--k);color:#fff;border:0;border-radius:28px;padding:13px 20px 13px 16px;font-size:14px;font-weight:500;letter-spacing:.02em;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.28),inset 0 -3px 0 var(--a)}
+#homeBtn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#homeBtn.on{display:flex}
+#homeBtn:active{transform:scale(.96)}
+body.locked #homeBtn{display:none}
+/* instalar */
+#instBar{position:fixed;left:0;right:0;bottom:0;z-index:110;display:none;background:#fff;border-top:3px solid var(--a);box-shadow:0 -6px 24px rgba(0,0,0,.15);padding:16px calc(18px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left))}
+#instBar.on{display:block}
+.ib{max-width:620px;margin:0 auto;display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:center}
+.ib img{width:56px;height:56px;border-radius:13px}
+.ib b{font-size:15px;font-weight:500}.ib p{font-size:13.5px;color:var(--g1);margin-top:3px;line-height:1.45}
+.ib .shi{display:inline-block;vertical-align:-4px;width:18px;height:18px;stroke:#0a7aff;fill:none;stroke-width:1.8}
+.ibb{display:flex;gap:8px;margin-top:10px;grid-column:1/-1;justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -255,7 +270,9 @@ body.locked{overflow:hidden}
 <div class="ov" id="ov"><div class="sh" id="sh"></div></div>
 <div class="full" id="full"></div>
 <div class="lb" id="lb" onclick="this.classList.remove('on')"><img id="lbi" alt=""></div>
-<div class="toast" id="toast"></div><div id="gtip"></div>
+<div class="toast" id="toast"></div>
+<button id="homeBtn" onclick="goHome()" aria-label="Volver al inicio"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg><span>Inicio</span></button>
+<div id="instBar"></div><div id="gtip"></div>
 <input type="file" id="fileIn" accept="image/*" multiple hidden>
 
 <script>
@@ -314,7 +331,7 @@ function zonesOf(u){
 
 function sha256(s){s=unescape(encodeURIComponent(s));function r(v,a){return(v>>>a)|(v<<(32-a))}const mp=Math.pow,mw=mp(2,32);let res='',words=[],abl=s.length*8,hash=[],k=[],pc=0,ic={};for(let c=2;pc<64;c++){if(!ic[c]){for(let i=0;i<313;i+=c)ic[i]=c;hash[pc]=(mp(c,.5)*mw)|0;k[pc++]=(mp(c,1/3)*mw)|0}}s+='\x80';while(s.length%64-56)s+='\x00';for(let i=0;i<s.length;i++){const j=s.charCodeAt(i);words[i>>2]|=j<<((3-i)%4)*8}words[words.length]=((abl/mw)|0);words[words.length]=abl;for(let j=0;j<words.length;){const w=words.slice(j,j+=16),oh=hash;hash=hash.slice(0,8);for(let i=0;i<64;i++){const w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4],t1=hash[7]+(r(e,6)^r(e,11)^r(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=(i<16)?w[i]:(w[i-16]+(r(w15,7)^r(w15,18)^(w15>>>3))+w[i-7]+(r(w2,17)^r(w2,19)^(w2>>>10)))|0),t2=(r(a,2)^r(a,13)^r(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));hash=[(t1+t2)|0].concat(hash);hash[4]=(hash[4]+t1)|0}for(let i=0;i<8;i++)hash[i]=(hash[i]+oh[i])|0}for(let i=0;i<8;i++)for(let j=3;j+1;j--){const b=(hash[i]>>(j*8))&255;res+=((b<16)?0:'')+b.toString(16)}return res}
 /* ---------- usuarios (Firebase Authentication) ---------- */
-const USERS=[{id:'sergi',n:'Sergi'},{id:'jaime',n:'Jaime'},{id:'antonio',n:'Antonio'},{id:'monica',n:'Mónica',ro:true}];
+const USERS=[{id:'jaime',n:'Jaime'},{id:'antonio',n:'Antonio'},{id:'monica',n:'Mónica',ro:true},{id:'sergi',n:'Sergi'}];
 const RO=()=>!!(USERS.find(u=>u.id==CUR)||{}).ro;
 const DOM='@repasos-b5.app';const pwx=p=>'RpB5#'+p;
 let CUR=null,AUTHED=false;
@@ -684,7 +701,7 @@ function vHome(){
     ${USERS.map(u=>`<div class="rp" style="grid-template-columns:1fr auto;cursor:default"><div class="tx"><b>${u.n}</b><small>${u.ro?'solo consulta':all().filter(r=>r.autor==u.id).length+' repasos apuntados'}</small></div>${u.id==CUR?'<button class="chip" onclick="changePW()">Cambiar contraseña</button>':''}</div>`).join('')}
     ${CUR=='sergi'?'<p class="sub" style="font-size:12px;margin-top:8px">Si alguien olvida su contraseña: consola de Firebase → Authentication → Usuarios → elimina su usuario. Al entrar de nuevo pulsará «Es mi primera vez». Sus repasos no se pierden.</p>':''}
     <div class="grp"><span>Instalar en iPad o tablet</span></div>
-    <ol class="steps"><li>Abre esta web en <b>Safari</b> (iPad/iPhone) o Chrome (Android).</li><li>Pulsa <b>Compartir</b> → <b>Añadir a pantalla de inicio</b>.</li><li>Entra una vez con cobertura. A partir de ahí la app abre y funciona aunque no haya señal.</li></ol>
+    ${IS_STANDALONE?'<p style="font-size:14px;margin-top:10px">✓ La app ya está instalada en este dispositivo.</p>':'<button class="btn" style="margin-top:12px" onclick="showInstall(true)">Cómo instalarla aquí</button>'}<ol class="steps"><li>Abre esta web en <b>Safari</b> (iPad/iPhone) o Chrome (Android).</li><li>Pulsa <b>Compartir</b> → <b>Añadir a pantalla de inicio</b>.</li><li>Entra una vez con cobertura. A partir de ahí la app abre y funciona aunque no haya señal.</li></ol>
     <div class="grp"><span>Actividad del equipo</span><span>${HIST.length}</span></div>
     ${HIST.map(x=>{const u=x.u&&U[x.u];return `<div class="rp" style="grid-template-columns:70px 1fr" onclick="${x.rid?`openRep('${x.rid}')`:''}"><span class="sub" style="font-size:11.5px">${new Date(x.t).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})}<br>${new Date(x.t).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span><div class="tx"><b>${esc(uN(x.aut)||who(x.by))}</b> · ${esc(x.accion)} · ${u?'Vivienda '+uName(u):'Zonas comunes'}<small>${esc(x.txt||'')}</small></div></div>`}).join('')||'<div class="empty">Sin actividad todavía</div>'}
     <div class="grp"><span>Repasos anulados</span><span>${an.length}</span></div>
@@ -879,7 +896,32 @@ function pinMode(isNew){
   window._pd=draw;draw();$('#full').classList.add('on');
 }
 window.addEventListener('hashchange',()=>{zoom=1;render();scrollTo(0,0)});
-render();updUser();
+/* boton de inicio en todas las pantallas */
+function goHome(){if($('#ov').classList.contains('on'))closeSheet();homeTab='viviendas';location.hash='';render();scrollTo({top:0,behavior:'smooth'})}
+function updHome(){const h=location.hash.slice(1);const b=$('#homeBtn');if(b)b.classList.toggle('on',!!h&&h!='viviendas')}
+window.addEventListener('hashchange',updHome);
+/* instalar en iPad / iPhone / Android */
+const IS_STANDALONE=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let DEFERRED=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();DEFERRED=e;showInstall()});
+function instDismissed(){try{return Date.now()-(+localStorage.getItem('rp-inst')||0)<3*864e5}catch(e){return false}}
+function showInstall(force){
+  if(IS_STANDALONE)return;if(!force&&instDismissed())return;
+  const shareIco='<svg class="shi" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11v9h12v-9"/></svg>';
+  let txt;
+  if(IS_IOS){const safari=/Safari/.test(navigator.userAgent)&&!/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+    txt=safari?`Pulsa ${shareIco} <b>Compartir</b> (arriba, junto a la dirección) y elige <b>«Añadir a pantalla de inicio»</b>. Se abrirá a pantalla completa y funcionará sin cobertura.`:`Abre esta página en <b>Safari</b> para instalarla: pulsa ${shareIco} Compartir → <b>«Añadir a pantalla de inicio»</b>.`}
+  else if(DEFERRED)txt='Instálala en este dispositivo para abrirla como una app y usarla sin cobertura.';
+  else if(!force)return;
+  else txt='En el menú del navegador, elige <b>«Instalar app»</b> o <b>«Añadir a pantalla de inicio»</b>.';
+  const el=$('#instBar');el.innerHTML=`<div class="ib"><img src="apple-touch-icon.png" alt=""><div><b>Instala Repasos Viladecans</b><p>${txt}</p></div><div class="ibb">${DEFERRED&&!IS_IOS?'<button class="btn" onclick="doInstall()">Instalar</button>':''}<button class="btn o" onclick="hideInstall()">${IS_IOS?'Entendido':'Ahora no'}</button></div></div>`;el.classList.add('on');
+}
+function hideInstall(){$('#instBar').classList.remove('on');try{localStorage.setItem('rp-inst',Date.now())}catch(e){}}
+async function doInstall(){if(!DEFERRED)return;DEFERRED.prompt();try{await DEFERRED.userChoice}catch(e){}DEFERRED=null;hideInstall()}
+setTimeout(()=>showInstall(),2500);
+
+render();updUser();updHome();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
