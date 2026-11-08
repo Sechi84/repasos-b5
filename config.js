@@ -1,0 +1,1 @@
+window.FBCFG=window.FBCFG||{apiKey:"AIzaSyBBQ0Pwxv94t4E-yE7YxAmfVHmlK1qg38I",authDomain:"repasos-b5.firebaseapp.com",projectId:"repasos-b5",storageBucket:"repasos-b5.firebasestorage.app",messagingSenderId:"151361662605",appId:"1:151361662605:web:605bbdf6d60a7f6ad8bcc4"};
