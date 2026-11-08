@@ -125,6 +125,10 @@ textarea:focus{border-color:var(--k)}
 .au .aup{width:34px;height:34px;border-radius:50%;border:1px solid var(--k);background:var(--w);color:var(--k);cursor:pointer;font-size:13px;flex:none}.au .aup.on{background:var(--k);color:var(--on)}
 .au span{flex:1;font-size:13px}.au .aux{border:0;background:none;color:var(--k);font-size:20px;cursor:pointer;padding:0 6px}
 .mhint{font-size:11.5px;color:var(--g3);margin-top:6px;line-height:1.45}
+.fech{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:6px;border:1px solid var(--k)}.fech>div{padding:9px 10px;display:flex;flex-direction:column;gap:2px}.fech>div+div{border-left:1px solid var(--k)}
+.fech span{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--g3)}.fech b{font-weight:500;font-size:13.5px}.fech b.no{color:var(--g3);font-weight:400}.fech small{font-size:11px;color:var(--g3)}
+@media(max-width:480px){.fech{grid-template-columns:1fr}.fech>div+div{border-left:0;border-top:1px solid var(--k)}}
+#updBar{display:none;position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:130;background:var(--a);color:#fff;padding:10px 16px;font-size:13px;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.25)}#updBar.on{display:block}
 .pks{display:flex;margin:14px 0 8px}.pks button{flex:1;padding:10px;border:1px solid var(--k);background:var(--w);color:var(--k);font:inherit;font-size:14px;cursor:pointer}.pks button+button{border-left:0}.pks button.on{background:var(--k);color:var(--on)}
 .pks small{display:block;font-size:10.5px;opacity:.7;margin-top:2px}
 .photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -153,11 +157,12 @@ textarea:focus{border-color:var(--k)}
 .ind input:focus{border-color:var(--k)}
 .ind .n{font-size:22px;font-weight:200;min-width:34px;text-align:right}
 .ind button{border:1px solid var(--k);background:var(--w);padding:6px 10px;font-size:11.5px;cursor:pointer}
-.zcg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1px;background:var(--g5);border:1px solid var(--g5);margin-top:20px}
+.zcg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0;border-top:1px solid var(--g5);border-left:1px solid var(--g5);margin-top:20px}.zcg .zone{border-right:1px solid var(--g5);border-bottom:1px solid var(--g5)}
 .zcg .zone{min-height:130px}
 .grp{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--g3);margin:22px 0 2px;display:flex;justify-content:space-between;border-bottom:1px solid var(--k);padding-bottom:6px}
 input.loc{width:100%;border:0;border-bottom:1px solid var(--g4);font:inherit;font-size:15px;padding:8px 0;outline:none}
 footer{margin-top:60px;border-top:1px solid var(--k);padding:16px 0 30px}
+footer .scg{height:30px;width:auto;display:block}body.dark footer .scg{filter:invert(1)}
 footer .wrap{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--g3);gap:10px;flex-wrap:wrap}
 @media(max-width:520px){.kpis .lbl{letter-spacing:.05em;font-size:9.5px}.tag{font-size:9px;padding:2px 5px}.tag em{font-size:8.5px}}
 footer .logo .m{font-size:12px}footer .logo .s{font-size:4px}
@@ -313,7 +318,8 @@ body.helpon #homeBtn,body.helpon #instBar{display:none!important}
   <div class="ttl"><div class="t">Repasos · Bloque 5</div><div class="sync" id="sync">conectando…</div><div class="who" id="who"></div></div>
 </div></header>
 <main class="wrap" id="app"></main>
-<footer><div class="wrap"><span>Sergi Carrasco Galiana · Arquitecto colegiado COAC nº 74.977</span><span style="display:flex;align-items:center;gap:6px"><span class="logo"><span class="m">SCG</span><span class="s">ARQUITECTURA</span></span>· Viladecans 2403</span></div></footer>
+<div id="updBar" onclick="location.reload()">Hay una versión nueva de la app · <b>toca aquí para actualizar</b></div>
+<footer><div class="wrap"><img class="scg" src="logo-scg.png" alt="SCG Arquitectura"><span>Residencial Vila Llevant · Viladecans 2403</span></div></footer>
 
 <div class="ov" id="ov"><div class="sh" id="sh"></div></div>
 <div class="full" id="full"></div>
@@ -509,6 +515,16 @@ function go(h){location.hash=h?'#'+h:'';if(!h)render()}
 function dotsFor(list){const ids=[...new Set(list.filter(pend).map(r=>r.ind))];return `<span class="dots">${ids.map(i=>`<i style="background:${indOf(i).c}"></i>`).join('')}</span>`}
 function pinNums(uid){const l=of(r=>r.u==uid&&r.x!=null).sort((a,b)=>a.ts-b.ts);const m={};l.forEach((r,i)=>m[r.id]=i+1);return m}
 const ESTN={pendiente:'Pendiente',hecho:'Hecho',validado:'Validado'};
+const fD=t=>new Date(t).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+const fDT=t=>new Date(t).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const resT=r=>r.estado=='pendiente'?null:(r.tHecho||r.tValid||null);
+const dias=(a,b,suf)=>{const d=Math.max(0,Math.round((b-a)/864e5));return d==0?'el mismo día':(d==1?'1 día':d+' días')+' '+suf};
+function fechasHTML(r){if(!r.ts)return '';
+  return `<div class="fld"><span class="lbl">Fechas</span><div class="fech">
+   <div><span>Creado</span><b>${fDT(r.ts)}</b><small>por ${esc(uN(r.autor)||'—')}</small></div>
+   <div><span>Hecho</span>${r.tHecho&&r.estado!='pendiente'?`<b>${fDT(r.tHecho)}</b><small>${dias(r.ts,r.tHecho,'después')}</small>`:'<b class="no">Pendiente</b>'}</div>
+   <div><span>Validado</span>${r.tValid&&r.estado=='validado'?`<b>${fDT(r.tValid)}</b><small>${dias(r.ts,r.tValid,'en total')}</small>`:'<b class="no">—</b>'}</div>
+  </div>${r.rech?`<p class="sub" style="font-size:12px;margin-top:6px">Devuelto ${r.rech} vez${r.rech>1?'es':''} al industrial</p>`:''}</div>`}
 const hasPlan=r=>r.u!='ZC'||!!zcImg(r.z);
 function plImg(r){return r.u=='ZC'?(zcImg(r.z)?'planos/'+zcImg(r.z)+'.jpg':null):'planos/'+r.u+'.jpg'}
 function pinNumsZ(k){const l=of(r=>r.u=='ZC'&&r.z==k&&r.x!=null).sort((a,b)=>a.ts-b.ts);const m={};l.forEach((r,i)=>m[r.id]=i+1);return m}
@@ -577,7 +593,7 @@ async function buildPDF(o,prog){
       doc.setFillColor(...hex2rgb(i.c));doc.circle(M+13,y+3.5,3.2,'F');doc.setTextColor(255);doc.setFontSize(7.5);doc.text(String(nums[r.id]||'·'),M+13,y+4.6,{align:'center'});
       const tx=M+20;CB.push({p:doc.getNumberOfPages(),id:r.id,box:[M,y,7,7],st:[tx,y+3.9,tw,lines.length*4.2],n:lines.length,done:r.estado!='pendiente'});doc.setTextColor(...G);doc.setFontSize(7.5);doc.text(`${zoneName(r)}  ·  ${r.cat}${r.loc?'  ·  '+r.loc:''}${(r.aud||[]).length?'  ·  nota de voz en la app':''}`.toUpperCase(),tx,y+2.5);
       doc.setTextColor(...K);doc.setFontSize(9.5);doc.text(lines,tx,y+7.2);
-      const my=y+7.2+lines.length*4.2;doc.setFontSize(7.5);doc.setTextColor(...G);doc.text(`${i.n}   ·   ${ESTN[r.estado]}   ·   ${uN(r.autor)||'—'}   ·   ${new Date(r.ts).toLocaleDateString('es-ES')}`,tx,my);
+      const my=y+7.2+lines.length*4.2;doc.setFontSize(7.5);doc.setTextColor(...G);doc.text(`${i.n}   ·   ${ESTN[r.estado]}   ·   ${uN(r.autor)||'—'}   ·   creado ${fD(r.ts)}${resT(r)?'   ·   resuelto '+fD(resT(r)):''}`,tx,my);
       if(r.estado!='pendiente'){doc.setTextColor(...(r.estado=='hecho'?A:K));doc.text(ESTN[r.estado].toUpperCase(),tx+tw,y+2.5,{align:'right'})}
       let fx=W-M-fotos.length*25+2;for(const f of fotos){try{const p=await jpg(await fotoURL(f),500,.7);const s=23,w=p.w>=p.h?s:s*p.w/p.h,h=p.w>=p.h?s*p.h/p.w:s;doc.addImage(p.d,'JPEG',fx+(s-w)/2,y+(s-h)/2,w,h)}catch(e){doc.setDrawColor(220);doc.rect(fx,y,23,23)}fx+=25}
       y+=rh;doc.setDrawColor(230);doc.setLineWidth(.2);doc.line(M,y-1.5,W-M,y-1.5);
@@ -836,7 +852,7 @@ function catBlock(list,cats,sel){
 }
 function repList(list,nums){
   list=list.slice().sort((a,b)=>(a.estado=='validado')-(b.estado=='validado')||b.ts-a.ts);
-  return list.map(r=>{const i=indOf(r.ind);return `<div class="rp" onclick="openRep('${r.id}')"><div class="ph">${vis(r)[0]?`<img src="${esc(phSrc(vis(r)[0]))}" data-f="${esc(vis(r)[0])}" alt="">`:'sin foto'}<i style="background:${i.c}">${nums&&nums[r.id]||''}</i></div><div class="tx">${esc(r.txt)||'<span style="color:var(--g3)">(sin descripción)</span>'}<small>${esc(r.cat)} · ${esc(i.n)}${r.autor?' · '+esc(uN(r.autor)):''}${r.loc?' · '+esc(r.loc):''}${vis(r).length>1?' · '+vis(r).length+' fotos':''}${(r.aud||[]).length?' · 🎤 '+r.aud.length:''}${r._local?' · <b style="color:var(--a)">en el móvil</b>':''}</small></div><span class="st ${r.estado}">${ESTN[r.estado]}</span></div>`}).join('')||'<div class="empty">Sin repasos todavía</div>';
+  return list.map(r=>{const i=indOf(r.ind);return `<div class="rp" onclick="openRep('${r.id}')"><div class="ph">${vis(r)[0]?`<img src="${esc(phSrc(vis(r)[0]))}" data-f="${esc(vis(r)[0])}" alt="">`:'sin foto'}<i style="background:${i.c}">${nums&&nums[r.id]||''}</i></div><div class="tx">${esc(r.txt)||'<span style="color:var(--g3)">(sin descripción)</span>'}<small>${esc(r.cat)} · ${esc(i.n)}${r.autor?' · '+esc(uN(r.autor)):''}${r.ts?' · '+fD(r.ts):''}${resT(r)?' → resuelto '+fD(resT(r)):''}${r.loc?' · '+esc(r.loc):''}${vis(r).length>1?' · '+vis(r).length+' fotos':''}${(r.aud||[]).length?' · 🎤 '+r.aud.length:''}${r._local?' · <b style="color:var(--a)">en el móvil</b>':''}</small></div><span class="st ${r.estado}">${ESTN[r.estado]}</span></div>`}).join('')||'<div class="empty">Sin repasos todavía</div>';
 }
 let selCat=null, lastZone='';
 function vZona(uid,zk){
@@ -923,6 +939,7 @@ function drawForm(isNew){
   ${hasPlan(r)?`<div class="fld"><span class="lbl">Punto en el plano</span><div class="pinrow" onclick="F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}pinMode(${isNew})"><span>${r.x!=null?'Punto marcado ✓':'Marcar dónde está'}</span><span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:${indOf(r.ind).c}"></span>›</span></div></div>`:''}
   <div class="fld"><span class="lbl">Industrial</span><div class="chips">${IND.map(i=>`<button class="chip ${r.ind==i.id?'on':''}" onclick="F.ind='${i.id}';F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}drawForm(${isNew})"><i style="background:${i.c}"></i>${esc(i.n)}</button>`).join('')}</div></div>
   ${isNew?'':`<div class="fld"><span class="lbl">Estado</span><div class="chips">${Object.keys(ESTN).map(e=>`<button class="chip ${r.estado==e?'on':''}" onclick="F.estado='${e}';F.txt=$('#tx').value;${r.u=='ZC'?"F.loc=$('#loc').value;":''}drawForm(false)">${ESTN[e]}</button>`).join('')}</div></div>`}
+  ${isNew?'':fechasHTML(ORIG||r)}
   <div class="btns"><button class="btn" onclick="submitRep()">${isNew?'Guardar repaso':'Guardar cambios'}</button><button class="btn o" onclick="closeSheet()">Cancelar</button>${isNew?'':`<button class="btn d" onclick="if(window._dc){eliminarRep(F.id)}else{window._dc=1;this.textContent='¿Eliminar? Toca otra vez';this.classList.add('danger')}">Eliminar</button>`}</div>
   ${isNew?'':`<p class="sub" style="font-size:11px;margin-top:12px">Creado por <b>${esc(uN(r.autor)||who(r.by))}</b> el ${new Date(r.ts).toLocaleString('es-ES')}${r.mod?' · último cambio de '+esc(uN(r.modAut)||who(r.modBy))+' el '+new Date(r.mod).toLocaleString('es-ES'):''}${r._local?' · <b style="color:var(--a)">pendiente de subir</b>':''}</p>`}`);
   saveDraft(isNew);names([r.by,r.modBy]);
@@ -1057,7 +1074,7 @@ function viewRO(r){
    ${f.length?`<div class="fld"><span class="lbl">Fotografías · ${f.length}</span><div class="photos">${f.map(p=>`<div class="p"><img src="${esc(phSrc(p))}" data-f="${esc(p)}" onclick="lb(this.src)" alt=""></div>`).join('')}</div></div>`:''}
    ${(r.aud||[]).length?`<div class="fld"><span class="lbl">Notas de voz</span><div class="auds">${audListRO(r.aud)}</div></div>`:''}
    ${plImg(r)&&r.x!=null?`<div class="fld"><span class="lbl">Situación en plano</span><div class="pv" style="margin-top:6px"><div class="pvs" style="max-height:46vh"><div class="pi"><img src="${plImg(r)}" alt=""><div class="pin ${r.estado}" style="left:${r.x}%;top:${r.y}%;background:${i.c}"></div></div></div></div></div>`:''}
-   <div class="fld"><span class="lbl">Seguimiento</span><p class="sub" style="font-size:12.5px;margin-top:6px;line-height:1.7">Apuntado por <b>${esc(uN(r.autor)||'—')}</b> el ${new Date(r.ts).toLocaleString('es-ES')}${r.tHecho?`<br>Hecho el ${new Date(r.tHecho).toLocaleString('es-ES')} (${fmtD((r.tHecho-r.ts)/DAY)} desde que se apuntó)`:''}${r.tValid?`<br>Validado el ${new Date(r.tValid).toLocaleString('es-ES')}`:''}${r.rech?`<br>Devuelto ${r.rech} vez${r.rech>1?'es':''} al industrial`:''}${r.mod?`<br>Último cambio de ${esc(uN(r.modAut)||'—')} el ${new Date(r.mod).toLocaleString('es-ES')}`:''}</p></div>
+   ${fechasHTML(r)}${r.mod?`<p class="sub" style="font-size:11.5px;margin-top:8px">Último cambio de ${esc(uN(r.modAut)||'—')} el ${fDT(r.mod)}</p>`:''}
    <div class="btns"><button class="btn o" onclick="closeSheet()">Cerrar</button></div>`);
 }
 
@@ -1149,7 +1166,15 @@ async function doInstall(){if(!DEFERRED)return;DEFERRED.prompt();try{await DEFER
 setTimeout(()=>showInstall(),2500);
 
 render();updUser();updHome();
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker' in navigator){
+  const hadCtl=!!navigator.serviceWorker.controller;let reloading=false;
+  const doReload=()=>{if(reloading)return;if(F||REC||$('#full').classList.contains('on')){$('#updBar').classList.add('on');return}reloading=true;location.reload()};
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadCtl)doReload()});
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(reg=>{
+    const chk=()=>{try{reg.update()}catch(e){}};setInterval(chk,10*60*1000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')chk()});window.addEventListener('online',chk);
+  }).catch(()=>{}));
+}
 </script>
 </body>
 </html>
