@@ -515,7 +515,7 @@ function setBlock(b,keepRoute){b=+b;if(b==6&&!DATA6){toast('Los planos del Bloqu
   else nh=h;
   BL=b;try{localStorage.setItem('rp-bl',b)}catch(e){}setFloors();applyBlock();selCat=null;DASHSIG='';
   if(nh!==h){location.hash=nh;if(!nh)render()}else render();toast('Bloque '+b)}
-function applyBlock(){document.body.classList.toggle('b6',BL==6);document.body.classList.toggle('b5',BL!=6);document.documentElement.style.setProperty('--blk',BCOL[BL]);const t=document.querySelector('header .ttl .t');if(t)t.textContent='Repasos · Bloque '+BL;document.title='Repasos Viladecans · Bloque '+BL;}
+function applyBlock(){document.body.classList.toggle('b6',BL==6);document.body.classList.toggle('b5',BL!=6);document.documentElement.style.setProperty('--blk',BCOL[BL]);const t=document.querySelector('header .ttl .t');if(t)t.textContent='Repasos · Bloque '+BL;document.title='Repasos Viladecans · Bloque '+BL;const bh=document.getElementById('bswh');if(bh&&CUR)bh.innerHTML=blkSwitch('hd');}
 function blkSwitch(cls){return `<div class="bsw ${cls||''}" role="tablist" aria-label="Bloque">${[5,6].map(b=>`<button class="${BL==b?'on':''} b${b}" onclick="setBlock(${b})" ${b==6&&!DATA6?'title="Planos del Bloque 6 pendientes"':''}><small>Bloque</small><b>${b}</b></button>`).join('')}</div>`}
 const uName=u=>`${FLS[u.fl]}º-${u.door}`.replace('Bº','B');
 const uLong=u=>`${FLN[u.fl]} · Puerta ${u.door}`;
